@@ -28,7 +28,7 @@ export default function FormalPlungePage() {
         <h1 className="pixel-heading text-lg text-mamdani-mint sm:text-2xl">
           {cab?.title ?? "Formal Plunge"}
         </h1>
-        <p className="max-w-2xl font-body text-xl leading-relaxed text-mamdani-fog">
+        <p className="max-w-2xl font-terminal text-xl leading-relaxed text-mamdani-fog">
           {cab?.howToPlay}
         </p>
       </header>
@@ -39,6 +39,7 @@ export default function FormalPlungePage() {
           width={FORMAL_PLUNGE_DIMENSIONS.width}
           height={FORMAL_PLUNGE_DIMENSIONS.height}
           keyMap={KEY_MAP}
+          controls="flap"
           accentColor="#3DDC97"
         />
 
@@ -46,13 +47,13 @@ export default function FormalPlungePage() {
           <h2 className="font-pixel text-[10px] uppercase text-mamdani-gold">
             Mission Brief
           </h2>
-          <ul className="space-y-2 font-body text-lg text-mamdani-fog">
-            <li>🤿 SPACE / ↑ / W flaps the blazer.</li>
+          <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
+            <li>🤿 TAP the screen or the FLAP button (or SPACE / ↑).</li>
             <li>🏊 Clear the red tape to bank pools.</li>
             <li>👔 The suit is non-negotiable. It is formal.</li>
             <li>⚠️ Touch the ceiling or floor and it&apos;s a belly flop.</li>
           </ul>
-          <p className="font-body text-base text-mamdani-fog/70">
+          <p className="font-terminal text-base text-mamdani-fog/70">
             Prototype loop — physics, sprites, and a leaderboard land next.
           </p>
         </aside>

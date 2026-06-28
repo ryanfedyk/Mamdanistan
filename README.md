@@ -8,9 +8,16 @@ maintenance — pool openings, pothole repairs, neighborhood wins — as
 high-stakes 16-bit arcade missions.
 
 **Tone:** satirical, deeply local, unapologetically witty.
-**Aesthetic:** classic 16-bit arcade nation-builder menu — a polished modern
-vector map of NYC paired with pixel-art flags, cheeky progress bars, and
-`BUREAUCRACY LEVEL: DEFEATED` banners on a bold, high-contrast palette.
+
+**Aesthetic — two worlds, mobile-first:**
+- **The site** wears a 1970s NYC campaign-poster look: warm cream paper, deep
+  NYC blue + taxi yellow, a brick-orange accent, retro Fraunces serif display
+  type, and sunburst/halftone textures.
+- **The Arcade** keeps the classic 16-bit dark-cabinet skin (pixel type,
+  scanlines, neon) — scoped to `/arcade` via a nested layout.
+
+Everything is built mobile-first, and both mini-games ship real on-screen touch
+controls (tap-to-flap; a thumb D-pad) alongside keyboard support.
 
 ---
 

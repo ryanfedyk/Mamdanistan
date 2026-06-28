@@ -3,20 +3,13 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    color-scheme: dark;
-  }
-
+  /* ===== DEFAULT SKIN: 1970s NYC campaign ===== */
   body {
-    @apply bg-mamdani-ink text-mamdani-fog font-body antialiased;
-    /* Subtle tactical grid wash behind everything. */
-    background-image: radial-gradient(
-        circle at 50% -10%,
-        rgba(33, 212, 253, 0.08),
-        transparent 60%
-      ),
-      theme("backgroundImage.grid-tactical");
-    background-size: auto, 32px 32px;
+    @apply bg-campaign-cream text-campaign-ink font-sans antialiased;
+    background-image:
+      radial-gradient(circle at 50% -5%, rgba(27, 58, 156, 0.08), transparent 55%),
+      theme("backgroundImage.halftone");
+    background-size: auto, 14px 14px;
   }
 
   /* Crisp pixel rendering for sprite/canvas art. */
@@ -24,22 +17,68 @@
   img[data-pixel] {
     image-rendering: pixelated;
   }
+
+  /* Disable browser gesture interference on game controls. */
+  .no-touch-callout {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
 }
 
 @layer components {
-  /* Chunky arcade text — pair with font-pixel. */
+  /* ---------- Campaign components ---------- */
+
+  /* Retro poster heading. Pair with font-display. */
+  .poster-heading {
+    @apply font-display font-black tracking-tight text-campaign-navy;
+  }
+
+  /* Cream paper panel with hard poster shadow. */
+  .card-poster {
+    @apply relative rounded-xl border-2 border-campaign-navy bg-campaign-paper shadow-poster;
+  }
+
+  /* Small pill/eyebrow label. */
+  .eyebrow {
+    @apply inline-flex items-center gap-1.5 rounded-full border-2 border-campaign-navy bg-campaign-sun px-3 py-1 font-display text-xs font-bold uppercase tracking-wide text-campaign-navy;
+  }
+
+  /* Sunburst backdrop helper. */
+  .sunburst-bg {
+    @apply pointer-events-none absolute inset-0 -z-10 opacity-[0.14];
+    background: theme("backgroundImage.sunburst");
+    mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 70%);
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 70%);
+  }
+
+  /* ---------- Arcade skin (scoped) ---------- */
+
+  /* Wrap any arcade region in `.arcade-theme` to flip into 16-bit mode. */
+  .arcade-theme {
+    @apply bg-mamdani-ink font-terminal text-mamdani-fog;
+    background-image:
+      radial-gradient(circle at 50% -10%, rgba(33, 212, 253, 0.08), transparent 60%),
+      theme("backgroundImage.grid-tactical");
+    background-size: auto, 32px 32px;
+  }
+
+  .arcade-theme .pixel-heading {
+    @apply font-pixel uppercase tracking-wider text-mamdani-gold;
+    text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7);
+  }
+
   .pixel-heading {
     @apply font-pixel uppercase tracking-wider text-mamdani-gold;
     text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7);
   }
 
-  /* The CRT scanline overlay — drop on any panel. */
   .crt::after {
     content: "";
     @apply pointer-events-none absolute inset-0 bg-scanlines opacity-40 mix-blend-overlay;
   }
 
-  /* Arcade cabinet panel. */
   .panel {
     @apply relative rounded-md border-2 border-mamdani-steel bg-mamdani-slate/80 shadow-pixel backdrop-blur-sm;
   }

@@ -18,7 +18,7 @@ import { PinCard } from "@/components/map/PinCard";
 const NYC_CENTER: [number, number] = [40.7128, -74.006];
 const NYC_ZOOM = 11;
 
-/** Build a pixel-flag divIcon for a given win category. */
+/** Build a campaign flag-pin divIcon for a given win category. */
 function flagIcon(pin: MapPin, active: boolean): L.DivIcon {
   const color = CATEGORY_COLORS[pin.category];
   const glyph = CATEGORY_GLYPHS[pin.category];
@@ -27,27 +27,23 @@ function flagIcon(pin: MapPin, active: boolean): L.DivIcon {
     html: `
       <div style="
         position: relative;
-        transform: translate(-50%, -100%) ${active ? "scale(1.15)" : "scale(1)"};
+        transform: translate(-50%, -100%) ${active ? "scale(1.18)" : "scale(1)"};
         transition: transform 120ms ease-out;
       ">
         <div style="
-          width: 30px; height: 30px;
+          width: 34px; height: 34px;
           display: grid; place-items: center;
           background: ${color};
-          border: 2px solid #0B0E1A;
-          border-radius: 4px;
-          box-shadow: ${active ? `0 0 16px ${color}` : "2px 2px 0 rgba(0,0,0,0.6)"};
-          font-size: 15px; line-height: 1;
-        ">${glyph}</div>
-        <div style="
-          width: 0; height: 0; margin: -1px auto 0;
-          border-left: 6px solid transparent;
-          border-right: 6px solid transparent;
-          border-top: 8px solid #0B0E1A;
-        "></div>
+          border: 3px solid #0E2150;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          box-shadow: ${active ? `0 0 0 4px #FFC72C` : "2px 2px 0 rgba(14,33,80,0.5)"};
+        ">
+          <span style="transform: rotate(45deg); font-size: 15px; line-height: 1;">${glyph}</span>
+        </div>
       </div>`,
-    iconSize: [30, 38],
-    iconAnchor: [15, 38],
+    iconSize: [34, 42],
+    iconAnchor: [17, 42],
   });
 }
 
@@ -61,19 +57,19 @@ export function ImpactMap() {
   return (
     <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
       {/* Map canvas */}
-      <div className="panel crt h-[420px] overflow-hidden p-0 sm:h-[520px]">
+      <div className="card-poster h-[58vh] overflow-hidden p-0 sm:h-[520px]">
         <MapContainer
           center={NYC_CENTER}
           zoom={NYC_ZOOM}
           scrollWheelZoom
           preferCanvas
           className="h-full w-full"
-          style={{ background: "#0B0E1A" }}
+          style={{ background: "#FBF3DE" }}
         >
-          {/* Dark, modern vector-ish basemap. */}
+          {/* Polished light vector basemap, on-brand with the cream palette. */}
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
           {MAP_PINS.map((pin) => (
             <Marker
@@ -92,7 +88,7 @@ export function ImpactMap() {
         {activePin ? (
           <PinCard pin={activePin} />
         ) : (
-          <p className="font-body text-lg text-mamdani-fog">
+          <p className="font-sans text-lg text-campaign-ink/70">
             Tap a flag on The Grid to read the receipts.
           </p>
         )}
@@ -101,7 +97,7 @@ export function ImpactMap() {
   );
 }
 
-/** Compact selectable list so the map is keyboard-navigable too. */
+/** Compact selectable list so the map is tappable + keyboard-navigable. */
 function PinList({
   activeId,
   onSelect,
@@ -118,10 +114,8 @@ function PinList({
           <button
             key={pin.id}
             onClick={() => onSelect(pin.id)}
-            className={`flex items-center gap-1.5 rounded-sm border-2 px-2 py-1 font-pixel text-[8px] uppercase transition-colors ${
-              active
-                ? "border-black text-mamdani-ink"
-                : "border-mamdani-steel text-mamdani-fog hover:text-white"
+            className={`flex min-h-[44px] items-center gap-1.5 rounded-full border-2 border-campaign-navy px-3 py-2 font-display text-sm font-bold transition-transform hover:-translate-y-0.5 ${
+              active ? "text-campaign-cream shadow-poster-sm" : "bg-campaign-cream text-campaign-navy"
             }`}
             style={active ? { backgroundColor: color } : undefined}
           >

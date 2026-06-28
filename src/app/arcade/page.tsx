@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ARCADE_CABINETS } from "@/data/games";
-import { StatusBanner } from "@/components/ui/StatusBanner";
 
 export const metadata = {
   title: "The Arcade · Mamdanistan",
@@ -14,12 +13,17 @@ export default function ArcadePage() {
           Civic Engagement · Gamified
         </p>
         <h1 className="pixel-heading text-lg sm:text-2xl">The Arcade</h1>
-        <p className="max-w-2xl font-body text-xl leading-relaxed text-mamdani-fog">
+        <p className="max-w-2xl font-terminal text-xl leading-relaxed text-mamdani-fog">
           Democracy is a team sport and the floor is sticky. Pick a cabinet,
           insert an imaginary quarter, and do your part to lower the barrier to
           civic engagement — one pixel at a time.
         </p>
-        <StatusBanner text="INSERT COIN TO CONTINUE" tone="neutral" />
+        <div className="inline-flex items-center gap-2 rounded-sm border-2 border-mamdani-cyan bg-mamdani-ink/70 px-3 py-1.5">
+          <span className="animate-blink text-mamdani-cyan">▮</span>
+          <span className="font-pixel text-[9px] uppercase tracking-wider text-mamdani-cyan">
+            Insert Coin To Continue
+          </span>
+        </div>
       </header>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -49,8 +53,8 @@ export default function ArcadePage() {
                   {cab.status === "playable" ? "Playable" : "Prototype"}
                 </span>
               </div>
-              <p className="font-body text-xl text-white">{cab.blurb}</p>
-              <p className="font-body text-lg leading-relaxed text-mamdani-fog">
+              <p className="font-terminal text-xl text-white">{cab.blurb}</p>
+              <p className="font-terminal text-lg leading-relaxed text-mamdani-fog">
                 {cab.howToPlay}
               </p>
               <span className="inline-block pt-1 font-pixel text-[9px] uppercase text-mamdani-cyan group-hover:text-white">

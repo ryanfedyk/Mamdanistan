@@ -11,8 +11,8 @@ const ImpactMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="panel crt grid h-[420px] place-items-center sm:h-[520px]">
-        <p className="animate-blink font-pixel text-xs text-mamdani-cyan">
+      <div className="card-poster grid h-[60vh] place-items-center sm:h-[520px]">
+        <p className="animate-blink font-display text-lg font-bold text-campaign-blue">
           DEPLOYING TACTICAL MAP…
         </p>
       </div>
@@ -32,11 +32,9 @@ export default function GridPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-3">
-        <p className="font-pixel text-[8px] uppercase text-mamdani-cyan">
-          Spatial Intel · Five Boroughs
-        </p>
-        <h1 className="pixel-heading text-lg sm:text-2xl">The Grid</h1>
-        <p className="max-w-2xl font-body text-xl leading-relaxed text-mamdani-fog">
+        <p className="eyebrow">Spatial Intel · Five Boroughs</p>
+        <h1 className="poster-heading text-4xl sm:text-5xl">The Grid</h1>
+        <p className="max-w-2xl font-sans text-lg leading-relaxed text-campaign-ink/80">
           Every flag is a confirmed material win. Tap one to pull the localized
           briefing — news clips, press, and the cold hard stats. Yes, the map is
           this clean on purpose.
@@ -47,7 +45,7 @@ export default function GridPage() {
             {LEGEND.map(({ cat, label }) => (
               <li
                 key={cat}
-                className="flex items-center gap-1 font-pixel text-[8px] uppercase text-mamdani-fog"
+                className="flex items-center gap-1 font-display text-sm font-bold text-campaign-ink/70"
               >
                 <span aria-hidden>{CATEGORY_GLYPHS[cat]}</span>
                 {label}

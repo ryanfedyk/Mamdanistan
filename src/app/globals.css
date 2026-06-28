@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-mamdani-ink text-mamdani-fog font-body antialiased;
+    /* Subtle tactical grid wash behind everything. */
+    background-image: radial-gradient(
+        circle at 50% -10%,
+        rgba(33, 212, 253, 0.08),
+        transparent 60%
+      ),
+      theme("backgroundImage.grid-tactical");
+    background-size: auto, 32px 32px;
+  }
+
+  /* Crisp pixel rendering for sprite/canvas art. */
+  canvas,
+  img[data-pixel] {
+    image-rendering: pixelated;
+  }
+}
+
+@layer components {
+  /* Chunky arcade text — pair with font-pixel. */
+  .pixel-heading {
+    @apply font-pixel uppercase tracking-wider text-mamdani-gold;
+    text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7);
+  }
+
+  /* The CRT scanline overlay — drop on any panel. */
+  .crt::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0 bg-scanlines opacity-40 mix-blend-overlay;
+  }
+
+  /* Arcade cabinet panel. */
+  .panel {
+    @apply relative rounded-md border-2 border-mamdani-steel bg-mamdani-slate/80 shadow-pixel backdrop-blur-sm;
+  }
+}

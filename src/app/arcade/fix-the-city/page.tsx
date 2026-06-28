@@ -34,7 +34,7 @@ export default function FixTheCityPage() {
         <h1 className="pixel-heading text-lg text-mamdani-ember sm:text-2xl">
           {cab?.title ?? "Fix the City"}
         </h1>
-        <p className="max-w-2xl font-body text-xl leading-relaxed text-mamdani-fog">
+        <p className="max-w-2xl font-terminal text-xl leading-relaxed text-mamdani-fog">
           {cab?.howToPlay}
         </p>
       </header>
@@ -45,6 +45,7 @@ export default function FixTheCityPage() {
           width={FIX_THE_CITY_DIMENSIONS.width}
           height={FIX_THE_CITY_DIMENSIONS.height}
           keyMap={KEY_MAP}
+          controls="dpad"
           accentColor="#FF6B35"
         />
 
@@ -52,13 +53,13 @@ export default function FixTheCityPage() {
           <h2 className="font-pixel text-[10px] uppercase text-mamdani-gold">
             Mission Brief
           </h2>
-          <ul className="space-y-2 font-body text-lg text-mamdani-fog">
-            <li>🚧 ARROWS / WASD to roll the repair unit.</li>
+          <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
+            <li>🚧 Use the on-screen D-PAD (or ARROWS / WASD).</li>
             <li>🕳️ Stop on a hazard to clear it (+25).</li>
             <li>⏱️ Clear the whole grid before the clock dies.</li>
             <li>🚲 Gridlock is the final boss. Defeat it.</li>
           </ul>
-          <p className="font-body text-base text-mamdani-fog/70">
+          <p className="font-terminal text-base text-mamdani-fog/70">
             Prototype loop — combos, angry drivers, and tougher grids incoming.
           </p>
         </aside>

@@ -149,9 +149,9 @@ export const fixTheCity: GameEngine<FixTheCityState> = {
     ctx.fillRect(px - 6, py - 6, 12, 12);
     ctx.textAlign = "left";
 
-    if (state.phase === "attract") banner(ctx, "PRESS SPACE — BEAT THE CLOCK");
+    if (state.phase === "attract") banner(ctx, "INSERT COIN — BEAT THE CLOCK");
     else if (state.phase === "won") banner(ctx, "CITY FIXED — GRIDLOCK DEFEATED");
-    else if (state.phase === "gameover") banner(ctx, "TIME'S UP — SPACE TO RETRY");
+    else if (state.phase === "gameover") banner(ctx, "TIME'S UP — TAP RESET");
   },
 };
 

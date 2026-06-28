@@ -135,9 +135,9 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     ctx.fillText(`POOLS ${state.poolsUnlocked}`, 10, 32);
 
     if (state.phase === "attract") {
-      banner(ctx, "PRESS SPACE TO PLUNGE");
+      banner(ctx, "TAP TO PLUNGE");
     } else if (state.phase === "gameover") {
-      banner(ctx, "BELLY FLOP — SPACE TO RETRY");
+      banner(ctx, "BELLY FLOP — TAP TO RETRY");
     }
   },
 };

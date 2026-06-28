@@ -77,13 +77,13 @@ export function getPinById(id: string): MapPin | undefined {
   return MAP_PINS.find((pin) => pin.id === id);
 }
 
-/** Hex accents per win category — keeps map markers + cards in sync. */
+/** Hex accents per win category — campaign palette; keeps markers + cards in sync. */
 export const CATEGORY_COLORS: Record<WinCategory, string> = {
-  pools: "#3DDC97",
-  infrastructure: "#FF6B35",
-  housing: "#FFD23F",
-  transit: "#21D4FD",
-  parks: "#3DDC97",
+  pools: "#1B3A9C", // NYC blue (water)
+  infrastructure: "#E2542C", // brick orange
+  housing: "#F2A516", // campaign gold
+  transit: "#5B7FD4", // soft sky blue
+  parks: "#5F8A3A", // 70s olive green
 };
 
 /** Pixel-flag glyph per category, used on markers + legend. */

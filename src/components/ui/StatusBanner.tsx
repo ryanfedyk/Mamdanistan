@@ -1,6 +1,6 @@
 /**
- * Pixel-flag status banner, e.g. "BUREAUCRACY LEVEL: DEFEATED".
- * The signature bit of arcade flavor — drop it anywhere a win is declared.
+ * Campaign-style status chip, e.g. "BUREAUCRACY LEVEL: DEFEATED".
+ * Pill on the cream/blue palette with a waving flag.
  */
 export function StatusBanner({
   text,
@@ -10,19 +10,19 @@ export function StatusBanner({
   tone?: "victory" | "alert" | "neutral";
 }) {
   const tones = {
-    victory: "border-mamdani-mint text-mamdani-mint",
-    alert: "border-mamdani-red text-mamdani-red",
-    neutral: "border-mamdani-cyan text-mamdani-cyan",
+    victory: "bg-campaign-sun text-campaign-navy border-campaign-navy",
+    alert: "bg-campaign-brick text-campaign-cream border-campaign-navy",
+    neutral: "bg-campaign-cream text-campaign-navy border-campaign-navy",
   } as const;
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-sm border-2 ${tones[tone]} bg-mamdani-ink/70 px-3 py-1.5`}
+      className={`inline-flex items-center gap-2 rounded-full border-2 ${tones[tone]} px-3 py-1.5 shadow-poster-sm`}
     >
       <span className="animate-flag-wave" aria-hidden>
         🚩
       </span>
-      <span className="font-pixel text-[9px] uppercase tracking-wider">
+      <span className="font-display text-xs font-bold uppercase tracking-wide">
         {text}
       </span>
     </div>

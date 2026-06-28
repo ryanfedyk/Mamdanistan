@@ -1,11 +1,11 @@
 /**
- * Cheeky pixel progress bar. Animates its fill on mount via the
- * `--bar-fill` custom property wired to the `fill-up` keyframes.
+ * Campaign-style progress bar. Navy-outlined track on paper, sun-yellow fill
+ * that animates up on mount via the `--bar-fill` custom property.
  */
 export function ProgressBar({
   value,
   label,
-  color = "#3DDC97",
+  color = "#FFC72C",
 }: {
   value: number;
   label?: string;
@@ -15,19 +15,18 @@ export function ProgressBar({
   return (
     <div className="w-full">
       {label && (
-        <div className="mb-1 flex items-center justify-between font-pixel text-[9px] uppercase text-mamdani-fog">
+        <div className="mb-1 flex items-center justify-between font-display text-sm font-bold uppercase tracking-wide text-campaign-navy">
           <span>{label}</span>
-          <span style={{ color }}>{clamped}%</span>
+          <span>{clamped}%</span>
         </div>
       )}
-      <div className="h-4 w-full overflow-hidden rounded-sm border-2 border-mamdani-steel bg-mamdani-ink">
+      <div className="h-5 w-full overflow-hidden rounded-full border-2 border-campaign-navy bg-campaign-cream">
         <div
-          className="h-full animate-fill-up"
+          className="h-full animate-fill-up rounded-r-full"
           style={
             {
               backgroundColor: color,
               "--bar-fill": `${clamped}%`,
-              boxShadow: `0 0 12px ${color}`,
             } as React.CSSProperties
           }
         />

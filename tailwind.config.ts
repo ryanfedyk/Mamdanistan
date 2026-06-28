@@ -20,16 +20,17 @@ const config: Config = {
     extend: {
       colors: {
         // ---- Campaign skin (default site) ----
+        // Brand colors sampled from zohranfornyc.com.
         campaign: {
-          blue: "#1B3A9C", // deep NYC cobalt
-          navy: "#0E2150", // ink-blue, headings on cream
-          sky: "#5B7FD4", // soft secondary blue
-          sun: "#FFC72C", // taxi / sun yellow
-          gold: "#F2A516", // deeper gold
-          cream: "#FBF3DE", // warm paper background
+          blue: "#2619D1", // electric ultramarine (donate panel / wordmark)
+          navy: "#180F78", // dark brand blue — borders, shadows, strong text
+          sky: "#5B6FE0", // soft secondary blue
+          sun: "#FFAB00", // brand amber-orange (primary accent)
+          gold: "#E59A00", // deeper orange
+          cream: "#FBF3DE", // warm 70s paper background
           paper: "#F4E8C8", // panel paper
-          brick: "#E2542C", // 70s orange-red accent
-          ink: "#14213D", // primary body text
+          brick: "#F0431F", // punchy red-orange (wordmark shadow / alerts)
+          ink: "#1A1466", // primary body text (brand-blue ink)
         },
 
         // ---- Arcade skin (/arcade only) ----
@@ -54,10 +55,10 @@ const config: Config = {
         terminal: ["var(--font-terminal)", "monospace"], // VT323
       },
       boxShadow: {
-        // Campaign: hard 70s poster offset (blue ink)
-        poster: "5px 5px 0 0 #0E2150",
-        "poster-sun": "5px 5px 0 0 #F2A516",
-        "poster-sm": "3px 3px 0 0 #0E2150",
+        // Campaign: hard 70s poster offset (brand-blue ink)
+        poster: "5px 5px 0 0 #180F78",
+        "poster-sun": "5px 5px 0 0 #E59A00",
+        "poster-sm": "3px 3px 0 0 #180F78",
         // Arcade: chunky cabinet depth
         pixel: "4px 4px 0 0 rgba(0,0,0,0.6)",
         "pixel-lg": "6px 6px 0 0 rgba(0,0,0,0.6)",
@@ -71,10 +72,10 @@ const config: Config = {
           "linear-gradient(rgba(33,212,253,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(33,212,253,0.08) 1px, transparent 1px)",
         // 70s sunburst rays (place behind heroes)
         sunburst:
-          "repeating-conic-gradient(from 0deg at 50% 50%, #F2A516 0deg 10deg, #FFC72C 10deg 20deg)",
+          "repeating-conic-gradient(from 0deg at 50% 50%, #FFAB00 0deg 10deg, #E59A00 10deg 20deg)",
         // halftone dot wash
         halftone:
-          "radial-gradient(circle, rgba(14,33,80,0.16) 1.1px, transparent 1.4px)",
+          "radial-gradient(circle, rgba(24,15,120,0.16) 1.1px, transparent 1.4px)",
       },
       keyframes: {
         blink: {

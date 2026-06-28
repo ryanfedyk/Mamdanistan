@@ -34,10 +34,10 @@ function flagIcon(pin: MapPin, active: boolean): L.DivIcon {
           width: 34px; height: 34px;
           display: grid; place-items: center;
           background: ${color};
-          border: 3px solid #0E2150;
+          border: 3px solid #180F78;
           border-radius: 50% 50% 50% 0;
           transform: rotate(-45deg);
-          box-shadow: ${active ? `0 0 0 4px #FFC72C` : "2px 2px 0 rgba(14,33,80,0.5)"};
+          box-shadow: ${active ? `0 0 0 4px #FFAB00` : "2px 2px 0 rgba(24,15,120,0.5)"};
         ">
           <span style="transform: rotate(45deg); font-size: 15px; line-height: 1;">${glyph}</span>
         </div>

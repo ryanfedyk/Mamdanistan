@@ -20,14 +20,26 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MAMDANISTAN }}
-          channelId: live
-          projectId: mamdanistan
-          # Pin a current firebase-tools: the version bundled with the action
-          # retries an already-successful release after a "premature close"
-          # and then errors with FAILED_PRECONDITION ("already the active
-          # version"), turning successful deploys red. Newer CLIs handle this.
-          firebaseToolsVersion: latest
+      # Deploy via the CLI directly (not action-hosting-deploy@v0) so we can
+      # treat a no-op release as success. Firebase returns FAILED_PRECONDITION
+      # ("supplied version is the current active version") in two harmless
+      # cases the action surfaces as failures: (1) the rebuilt site is identical
+      # to what's already live (e.g. a workflow-only change), and (2) a
+      # "premature close" causes firebase-tools to retry an already-successful
+      # release. Both mean the site is up to date, so we exit 0 for them only.
+      - name: Deploy to Firebase Hosting (live)
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MAMDANISTAN }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          set +e
+          out=$(npx -y firebase-tools@latest deploy --only hosting \
+            --project mamdanistan --non-interactive 2>&1)
+          code=$?
+          printf '%s\n' "$out"
+          if [ $code -ne 0 ] && printf '%s' "$out" | grep -q "is the current active version"; then
+            echo "::notice::Hosting content already live (no-op release) — treating as success."
+            exit 0
+          fi
+          exit $code

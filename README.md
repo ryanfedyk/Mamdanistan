@@ -83,6 +83,42 @@ npm run typecheck  # tsc --noEmit
 npm run lint       # next lint
 ```
 
+## Deployment (Firebase Hosting)
+
+The app builds to a fully static site (`output: "export"` → `./out`) and
+auto-deploys to **Firebase Hosting** via GitHub Actions:
+
+- **`.github/workflows/firebase-hosting-merge.yml`** — deploys the **live**
+  site on every push to `main` (i.e. when a PR merges).
+- **`.github/workflows/firebase-hosting-pr.yml`** — deploys each PR to a
+  temporary **preview channel** and comments the URL on the PR.
+
+### One-time setup (required before deploys run)
+
+The workflows need a Firebase service account stored as a repo secret named
+`FIREBASE_SERVICE_ACCOUNT_MAMDANISTAN`. Easiest path:
+
+```bash
+npm i -g firebase-tools
+firebase login
+firebase init hosting:github   # in this repo — generates the secret + workflows
+```
+
+…or do it manually:
+
+1. Firebase Console → ⚙️ **Project settings → Service accounts → Generate new
+   private key** (downloads a JSON file).
+2. GitHub → repo **Settings → Secrets and variables → Actions → New secret**,
+   name `FIREBASE_SERVICE_ACCOUNT_MAMDANISTAN`, paste the JSON contents.
+3. Ensure **Hosting** is enabled for the `mamdanistan` project in the console.
+
+### Deploy manually
+
+```bash
+npm run build
+firebase deploy --only hosting     # or: npx firebase-tools deploy --only hosting
+```
+
 ## Adding a win to The Grid
 
 Append a `MapPin` to `src/data/pins.ts`. The map, dashboard, and cards all

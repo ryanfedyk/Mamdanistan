@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Press_Start_2P, VT323 } from "next/font/google";
 import Link from "next/link";
+import { FirebaseAnalytics } from "@/components/FirebaseAnalytics";
 import "./globals.css";
 
 // 16-bit display face for headings + HUD.
@@ -80,6 +81,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${pixel.variable} ${body.variable}`}>
       <body className="min-h-screen">
+        <FirebaseAnalytics />
         <NavBar />
         <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
         <Footer />

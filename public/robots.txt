@@ -1,0 +1,5 @@
+# Welcome to Mamdanistan — the potholes are fixed, the pools are open.
+User-agent: *
+Allow: /
+
+Sitemap: https://mamdanistan.web.app/sitemap.xml

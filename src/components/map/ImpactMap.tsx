@@ -11,7 +11,7 @@ import { PinCard } from "@/components/map/PinCard";
  * positioned on top via percentage coordinates (pin.mapPosition). Clicking a
  * pin pulls its localized card. No tile layer / Leaflet — lighter on mobile.
  */
-const MAP_SRC = "/map-nyc.png";
+const MAP_SRC = "/map-nyc.webp";
 
 export function ImpactMap() {
   const [activeId, setActiveId] = useState<string>(MAP_PINS[0]?.id ?? "");

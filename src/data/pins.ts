@@ -19,7 +19,7 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "East Harlem",
     category: "pools",
     coordinates: [40.7957, -73.9389],
-    mapPosition: { x: 41, y: 27 }, // East Harlem, above Central Park
+    mapPosition: { x: 41, y: 24 }, // East Harlem, just NE of Central Park's top
     progress: 100,
     statusBanner: "POOL SEASON: UNLOCKED",
     references: [
@@ -52,7 +52,7 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Williamsburg ↔ Lower East Side",
     category: "infrastructure",
     coordinates: [40.7133, -73.9724],
-    mapPosition: { x: 49, y: 62 }, // Williamsburg Bridge over the East River
+    mapPosition: { x: 50, y: 57 }, // Williamsburg Bridge (red span) over the East River
     progress: 92,
     statusBanner: "BUREAUCRACY LEVEL: DEFEATED",
     references: [

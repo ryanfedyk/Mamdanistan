@@ -167,10 +167,10 @@ export function getPinById(id: string): MapPin | undefined {
 
 /** Hex accents per win category — campaign palette; keeps markers + cards in sync. */
 export const CATEGORY_COLORS: Record<WinCategory, string> = {
-  pools: "#0000FF", // electric blue (water)
+  pools: "#241AC9", // electric blue (water)
   infrastructure: "#FF0000", // red
   housing: "#FFA500", // orange
-  transit: "#0000FF", // blue
+  transit: "#241AC9", // blue
   parks: "#FFA500", // orange
 };
 

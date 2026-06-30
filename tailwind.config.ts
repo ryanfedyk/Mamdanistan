@@ -20,7 +20,7 @@ const config: Config = {
     extend: {
       colors: {
         // ---- Neo-brutalist skin (default site) ----
-        primary: "#0000FF", // electric blue
+        primary: "#241AC9", // electric blue
         secondary: "#FFA500", // orange
         tertiary: "#FF0000", // red
         background: "#f9f9f9",
@@ -66,7 +66,7 @@ const config: Config = {
         brutal: "6px 6px 0 0 #000000",
         "brutal-sm": "3px 3px 0 0 #000000",
         "brutal-lg": "8px 8px 0 0 #000000",
-        "brutal-blue": "8px 8px 0 0 #0000FF",
+        "brutal-blue": "8px 8px 0 0 #241AC9",
         "brutal-yellow": "8px 8px 0 0 #FFA500",
         "brutal-red": "8px 8px 0 0 #FF0000",
         // Arcade cabinet depth.

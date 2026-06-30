@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0000FF",
+  themeColor: "#241AC9",
   width: "device-width",
   initialScale: 1,
 };
@@ -44,42 +44,37 @@ function NavBar() {
       <Link
         href="/"
         aria-label="Mamdanistan — home"
-        className="flex items-center gap-3 sm:gap-4"
+        className="flex items-center gap-3 lg:gap-4"
       >
-        {/* Oversized mark — overflows the bar down into the page below. */}
-        <span className="relative block h-10 w-16 sm:h-14 sm:w-28">
+        {/* Oversized mark — desktop only (lg+); overflows the bar downward.
+            Small screens show the wordmark instead. */}
+        <span className="relative hidden h-14 w-28 lg:block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-mark.webp"
             alt=""
-            className="absolute left-0 top-0 h-16 w-16 max-w-none drop-shadow-[3px_3px_0_#000] sm:h-28 sm:w-28"
+            className="absolute left-0 top-0 h-28 w-28 max-w-none drop-shadow-[3px_3px_0_#000]"
           />
         </span>
-        {/* Wordmark — wide, so shown only where there's room (lg+). */}
+        {/* Wordmark — always shown; it's the brand on small screens. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo-wordmark.webp"
-          alt=""
-          className="hidden w-auto lg:block lg:h-12"
+          alt="Mamdanistan"
+          className="block h-6 w-auto sm:h-8 lg:h-12"
         />
       </Link>
-      <nav className="flex items-center gap-3 sm:gap-5">
-        <Link
-          href="/"
-          className="hidden border-2 border-outline bg-white px-4 py-1 text-sm font-black uppercase text-on-secondary brutal-shadow-blue transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none sm:inline-block"
-        >
-          Home
-        </Link>
+      <nav className="flex items-center gap-2 sm:gap-5">
         <Link
           href="/grid"
-          className="whitespace-nowrap text-sm font-black uppercase text-on-secondary hover:border-b-4 hover:border-outline"
+          className="whitespace-nowrap text-xs font-black uppercase text-on-secondary hover:border-b-4 hover:border-outline sm:text-sm"
         >
           <span className="sm:hidden">Grid</span>
           <span className="hidden sm:inline">The Grid</span>
         </Link>
         <Link
           href="/arcade"
-          className="whitespace-nowrap border-2 border-outline bg-primary px-3 py-1 text-sm font-black uppercase text-white transition-all hover:translate-x-[1px] hover:translate-y-[1px]"
+          className="whitespace-nowrap border-2 border-outline bg-primary px-2 py-1 text-xs font-black uppercase text-white transition-all hover:translate-x-[1px] hover:translate-y-[1px] sm:px-3 sm:text-sm"
         >
           Arcade
         </Link>

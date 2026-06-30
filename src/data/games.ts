@@ -66,6 +66,19 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
     status: "stub",
   },
   {
+    id: "hot-mic",
+    title: "Hot Mic",
+    blurb: "Survive the press. Stay on message.",
+    howToPlay:
+      "A hostile interview gauntlet. Each question is a trap — pick the answer " +
+      "that pivots back to local material wins (pools, rent, buses). Stay on " +
+      "message to build Momentum and starve the Noise meter. Take the bait and " +
+      "you become the headline.",
+    accent: "mamdani-cyan",
+    glyph: "🎙️",
+    status: "playable",
+  },
+  {
     id: "fix-the-city",
     title: "Fix the City",
     blurb: "Clear the lanes. Patch the potholes. Beat the clock.",

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { BaseGameState, GameEngine } from "@/lib/types";
 
 type KeyMap = Record<string, string>;
-type ControlScheme = "flap" | "dpad" | "shooter";
+type ControlScheme = "flap" | "dpad" | "shooter" | "tap";
 
 /**
  * Generic arcade canvas host. Owns the requestAnimationFrame loop, the
@@ -100,14 +100,23 @@ export function GameCanvas<TState extends BaseGameState>({
           width={width}
           height={height}
           onPointerDown={
-            controls === "flap"
+            controls === "flap" || controls === "tap"
               ? (e) => {
                   e.preventDefault();
-                  send("flap");
+                  if (controls === "flap") {
+                    send("flap");
+                    return;
+                  }
+                  const el = canvasRef.current;
+                  if (!el) return;
+                  const r = el.getBoundingClientRect();
+                  const x = (e.clientX - r.left) / r.width;
+                  const y = (e.clientY - r.top) / r.height;
+                  send(`tap:${x.toFixed(4)},${y.toFixed(4)}`);
                 }
               : undefined
           }
-          className="block w-full touch-none rounded-sm"
+          className={`block w-full touch-none rounded-sm ${controls === "tap" ? "cursor-pointer" : ""}`}
           style={{ aspectRatio: `${width} / ${height}` }}
         />
       </div>
@@ -117,6 +126,10 @@ export function GameCanvas<TState extends BaseGameState>({
         <FlapControls onFlap={() => send("flap")} />
       ) : controls === "shooter" ? (
         <ShooterControls onMove={send} />
+      ) : controls === "tap" ? (
+        <p className="text-center font-pixel text-[9px] uppercase text-mamdani-fog">
+          ☝ Tap the potholes
+        </p>
       ) : (
         <DPad onMove={send} />
       )}

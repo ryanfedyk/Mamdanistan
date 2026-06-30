@@ -64,10 +64,10 @@ function NavBar() {
           className="block h-6 w-auto sm:h-8 lg:h-12"
         />
       </Link>
-      <nav className="flex items-center gap-2 sm:gap-5">
+      <nav className="flex items-center gap-2 sm:gap-3">
         <Link
           href="/grid"
-          className="whitespace-nowrap text-xs font-black uppercase text-on-secondary hover:border-b-4 hover:border-outline sm:text-sm"
+          className="whitespace-nowrap border-2 border-outline bg-primary px-2 py-1 text-xs font-black uppercase text-white transition-all hover:translate-x-[1px] hover:translate-y-[1px] sm:px-3 sm:text-sm"
         >
           <span className="sm:hidden">Grid</span>
           <span className="hidden sm:inline">The Grid</span>

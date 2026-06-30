@@ -7,10 +7,11 @@ import type { WinCategory } from "@/lib/types";
 
 /**
  * MobileMap — the full-screen, page-locked map experience (<lg only).
- * The map is the whole surface below the nav; only the map pans/zooms, the
- * page itself doesn't scroll. A dismissible welcome panel holds the intro +
- * a tappable directory of wins; tapping a pin (or a directory row) opens a
- * floating detail window over the map.
+ * The map is the whole surface below the nav; only the map pans/zooms. UI
+ * floats over it as Google-Maps-style bottom sheets that stay a fixed screen
+ * size regardless of map zoom. Native pinch-zoom is suppressed on the map
+ * surface (it would scale the whole viewport incl. overlays) — zoom is driven
+ * by the on-screen buttons instead.
  */
 const MAP_SRC = "/map-nyc.webp";
 const MIN_SCALE = 1;
@@ -18,7 +19,7 @@ const MAX_SCALE = 4;
 
 const LEGEND: Array<{ cat: WinCategory; label: string }> = [
   { cat: "pools", label: "Pools" },
-  { cat: "infrastructure", label: "Infrastructure" },
+  { cat: "infrastructure", label: "Infra" },
   { cat: "housing", label: "Housing" },
   { cat: "transit", label: "Transit" },
 ];
@@ -57,8 +58,12 @@ export function MobileMap() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 top-[60px] z-40 bg-secondary lg:hidden">
-      {/* Pannable / zoomable map surface */}
-      <div className="h-full w-full overflow-auto">
+      {/* Pannable map surface. touch-action pan-* allows scroll-pan but blocks
+          native pinch-zoom (which would scale the overlays too). */}
+      <div
+        className="h-full w-full overflow-auto"
+        style={{ touchAction: "pan-x pan-y" }}
+      >
         <div className="relative" style={{ width: `${scale * 100}%`, minWidth: "100%" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -75,7 +80,7 @@ export function MobileMap() {
                 key={pin.id}
                 onClick={() => open(pin.id)}
                 aria-label={pin.title}
-                className="absolute grid h-10 w-10 -translate-x-1/2 -translate-y-1/2 place-items-center border-[3px] border-outline text-lg shadow-[2px_2px_0_0_#000]"
+                className="absolute grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center border-[3px] border-outline text-base shadow-[2px_2px_0_0_#000]"
                 style={{
                   left: `${pin.mapPosition.x}%`,
                   top: `${pin.mapPosition.y}%`,
@@ -90,8 +95,8 @@ export function MobileMap() {
         </div>
       </div>
 
-      {/* Zoom HUD */}
-      <div className="absolute bottom-4 left-3 z-10 flex flex-col gap-2">
+      {/* Zoom HUD (fixed screen size) */}
+      <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-2">
         <ZoomBtn label="+" onClick={() => setScale((s) => Math.min(MAX_SCALE, +(s + 0.5).toFixed(2)))} />
         <ZoomBtn label="−" onClick={() => setScale((s) => Math.max(MIN_SCALE, +(s - 0.5).toFixed(2)))} />
       </div>
@@ -99,7 +104,7 @@ export function MobileMap() {
       {/* Plot helpers */}
       {plotMode && (
         <div className="absolute left-3 top-3 z-10 border-2 border-outline bg-tertiary px-2 py-1 text-[10px] font-black uppercase text-white">
-          Plot · tap to copy coords
+          Plot · tap to copy
         </div>
       )}
       {toast && (
@@ -108,7 +113,7 @@ export function MobileMap() {
         </div>
       )}
 
-      {/* Reopen-intel button (when welcome is dismissed and nothing is open) */}
+      {/* Reopen-intel button */}
       {!welcome && !active && (
         <button
           onClick={() => setWelcome(true)}
@@ -118,38 +123,29 @@ export function MobileMap() {
         </button>
       )}
 
-      {/* Welcome / directory overlay */}
+      {/* Welcome / directory bottom sheet */}
       {welcome && (
-        <div className="absolute inset-x-3 top-3 z-30 max-h-[calc(100%-1.5rem)] overflow-auto border-4 border-outline bg-surface shadow-brutal">
-          <div className="flex items-start justify-between gap-2 border-b-4 border-outline bg-primary px-4 py-3 text-white">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-secondary">
-                Live Uplink · NYC Command
-              </p>
-              <h1 className="brutal-heading text-2xl leading-none">The Grid</h1>
-            </div>
-            <button
-              onClick={() => setWelcome(false)}
-              aria-label="Dismiss"
-              className="grid h-8 w-8 shrink-0 place-items-center border-2 border-outline bg-white font-black text-black"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="space-y-3 px-4 py-4">
-            <p className="text-base font-bold text-on-surface">
-              Every flag is a confirmed material win. Tap a pin on the map — or a
-              win below — to pull its briefing.
+        <BottomSheet onClose={() => setWelcome(false)}>
+          <div className="border-b-2 border-outline bg-primary px-4 py-2 text-white">
+            <p className="text-[10px] font-black uppercase tracking-widest text-secondary">
+              Live Uplink · NYC Command
             </p>
-            <ul className="divide-y-2 divide-outline/20 border-2 border-outline">
+            <h1 className="brutal-heading text-xl leading-none">The Grid</h1>
+          </div>
+          <div className="space-y-3 px-4 py-3">
+            <p className="text-sm font-bold text-on-surface">
+              Every flag is a confirmed material win. Tap a pin — or a win below
+              — for its briefing.
+            </p>
+            <ul className="border-2 border-outline">
               {MAP_PINS.map((pin) => (
-                <li key={pin.id}>
+                <li key={pin.id} className="border-b-2 border-outline/20 last:border-0">
                   <button
                     onClick={() => open(pin.id)}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-secondary"
                   >
                     <span
-                      className="grid h-7 w-7 shrink-0 place-items-center border-2 border-outline text-sm"
+                      className="grid h-6 w-6 shrink-0 place-items-center border-2 border-outline text-xs"
                       style={{ backgroundColor: CATEGORY_COLORS[pin.category] }}
                       aria-hidden
                     >
@@ -162,33 +158,63 @@ export function MobileMap() {
                 </li>
               ))}
             </ul>
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="flex flex-wrap gap-2">
               {LEGEND.map(({ cat, label }) => (
-                <span key={cat} className="flex items-center gap-1 text-xs font-black uppercase text-on-surface/70">
-                  <span
-                    className="inline-block h-3 w-3 border border-outline"
-                    style={{ backgroundColor: CATEGORY_COLORS[cat] }}
-                  />
+                <span key={cat} className="flex items-center gap-1 text-[11px] font-black uppercase text-on-surface/70">
+                  <span className="inline-block h-3 w-3 border border-outline" style={{ backgroundColor: CATEGORY_COLORS[cat] }} />
                   {label}
                 </span>
               ))}
             </div>
-            <button
-              onClick={() => setWelcome(false)}
-              className="btn-brutal w-full bg-primary text-white brutal-shadow"
-            >
-              Explore the map →
-            </button>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
-      {/* Pin detail window */}
+      {/* Pin detail bottom sheet */}
       {active && (
-        <div className="absolute inset-x-3 bottom-4 z-30 max-h-[78%] overflow-auto shadow-brutal">
-          <PinCard pin={active} onClose={() => setActiveId(null)} />
-        </div>
+        <BottomSheet key={active.id} onClose={() => setActiveId(null)}>
+          <PinCard pin={active} bare />
+        </BottomSheet>
       )}
+    </div>
+  );
+}
+
+/**
+ * A Google-Maps-style bottom sheet: peeks by default, tap the grab handle to
+ * expand/collapse. Fixed to the viewport, so it never scales with map zoom.
+ */
+function BottomSheet({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div
+      className={`absolute inset-x-0 bottom-0 z-30 flex flex-col border-t-4 border-outline bg-surface shadow-[0_-6px_0_0_#000] transition-[height] duration-200 ${
+        expanded ? "h-[90%]" : "h-[52%]"
+      }`}
+    >
+      <div className="flex items-center gap-2 border-b-2 border-outline px-2 py-1">
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          aria-label={expanded ? "Collapse" : "Expand"}
+          className="flex flex-1 justify-center py-2"
+        >
+          <span className="h-1.5 w-12 rounded-full bg-outline/40" />
+        </button>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="grid h-7 w-7 shrink-0 place-items-center border-2 border-outline bg-white font-black text-black"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto">{children}</div>
     </div>
   );
 }

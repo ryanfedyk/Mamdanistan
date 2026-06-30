@@ -61,9 +61,11 @@ export function ImpactMap() {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-      {/* Illustrated map viewport */}
-      <div className="relative h-[64vh] overflow-hidden border-4 border-outline bg-secondary brutal-shadow-yellow sm:h-[560px]">
+    <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr] lg:items-start">
+      {/* Illustrated map viewport. On mobile: a fixed-height scroll/zoom box.
+          On desktop (lg): sized to the image's aspect ratio so the whole
+          portrait map is exposed without internal scrolling. */}
+      <div className="relative h-[64vh] overflow-hidden border-4 border-outline bg-secondary brutal-shadow-yellow sm:h-[560px] lg:h-auto lg:aspect-[1536/2752]">
         <div className="h-full w-full overflow-auto" onWheel={onWheel}>
           <div
             className="relative origin-top-left"

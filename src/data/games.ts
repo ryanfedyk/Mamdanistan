@@ -18,6 +18,18 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
     status: "stub",
   },
   {
+    id: "landlord-invaders",
+    title: "Landlord Invaders",
+    blurb: "Freeze the rent. Evict the evictors.",
+    howToPlay:
+      "Slide your Rent-Freeze cannon with the ◀ ▶ buttons (or arrow keys) " +
+      "and TAP FIRE (or SPACE) to launch eviction notices at the descending " +
+      "rent-hike landlords. Clear the board before one reaches street level.",
+    accent: "mamdani-red",
+    glyph: "💼",
+    status: "stub",
+  },
+  {
     id: "fix-the-city",
     title: "Fix the City",
     blurb: "Clear the lanes. Patch the potholes. Beat the clock.",

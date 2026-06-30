@@ -85,7 +85,13 @@ export interface MapPin {
 export type GamePhase = "attract" | "playing" | "paused" | "won" | "gameover";
 
 /** Identifiers for the seeded cabinets. */
-export type GameId = "formal-plunge" | "fix-the-city";
+export type GameId =
+  | "formal-plunge"
+  | "fix-the-city"
+  | "landlord-invaders"
+  | "bus-lane-blitz"
+  | "toddler-tycoon"
+  | "asphalt-attack";
 
 /** Catalog entry shown on the arcade hub menu. */
 export interface ArcadeCabinet {

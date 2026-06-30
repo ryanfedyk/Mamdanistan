@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { BaseGameState, GameEngine } from "@/lib/types";
 
 type KeyMap = Record<string, string>;
-type ControlScheme = "flap" | "dpad";
+type ControlScheme = "flap" | "dpad" | "shooter";
 
 /**
  * Generic arcade canvas host. Owns the requestAnimationFrame loop, the
@@ -115,6 +115,8 @@ export function GameCanvas<TState extends BaseGameState>({
       {/* Touch controls */}
       {controls === "flap" ? (
         <FlapControls onFlap={() => send("flap")} />
+      ) : controls === "shooter" ? (
+        <ShooterControls onMove={send} />
       ) : (
         <DPad onMove={send} />
       )}
@@ -172,6 +174,30 @@ function DPad({ onMove }: { onMove: (intent: string) => void }) {
         ▼
       </button>
       <span />
+    </div>
+  );
+}
+
+function ShooterControls({ onMove }: { onMove: (intent: string) => void }) {
+  const move =
+    "flex h-14 w-14 touch-none items-center justify-center rounded-md border-2 border-black bg-mamdani-steel font-pixel text-base text-mamdani-gold shadow-pixel active:translate-y-[3px] active:shadow-none";
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex gap-2">
+        <button {...pressHandlers(() => onMove("left"))} aria-label="Left" className={move}>
+          ◀
+        </button>
+        <button {...pressHandlers(() => onMove("right"))} aria-label="Right" className={move}>
+          ▶
+        </button>
+      </div>
+      <button
+        {...pressHandlers(() => onMove("fire"))}
+        aria-label="Fire"
+        className="h-14 flex-1 touch-none rounded-md border-2 border-black bg-mamdani-mint font-pixel text-sm uppercase text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
+      >
+        🔫 FIRE
+      </button>
     </div>
   );
 }

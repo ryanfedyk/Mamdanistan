@@ -9,11 +9,20 @@ import { StatusBanner } from "@/components/ui/StatusBanner";
  * Localized card view pulled in when a map pin is clicked. Renders the
  * win's news clips, press, and policy metrics. Brutalist styling.
  */
-export function PinCard({ pin, onClose }: { pin: MapPin; onClose?: () => void }) {
+export function PinCard({
+  pin,
+  onClose,
+  bare = false,
+}: {
+  pin: MapPin;
+  onClose?: () => void;
+  /** Drop the card border/shadow — for embedding inside a bottom sheet. */
+  bare?: boolean;
+}) {
   const color = CATEGORY_COLORS[pin.category];
 
   return (
-    <article className="brutal-card overflow-hidden">
+    <article className={bare ? "overflow-hidden" : "brutal-card overflow-hidden"}>
       <div
         className="flex items-start justify-between gap-3 border-b-4 border-outline px-5 py-4"
         style={{ backgroundColor: color }}

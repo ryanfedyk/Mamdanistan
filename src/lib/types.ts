@@ -91,7 +91,8 @@ export type GameId =
   | "landlord-invaders"
   | "bus-lane-blitz"
   | "toddler-tycoon"
-  | "asphalt-attack";
+  | "asphalt-attack"
+  | "hot-mic";
 
 /** Catalog entry shown on the arcade hub menu. */
 export interface ArcadeCabinet {

@@ -41,12 +41,26 @@ export const viewport: Viewport = {
 function NavBar() {
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between border-b-4 border-outline bg-secondary px-4 py-4 shadow-brutal md:px-12">
-      <Link href="/" aria-label="Mamdanistan — home" className="flex items-center">
+      <Link
+        href="/"
+        aria-label="Mamdanistan — home"
+        className="flex items-center gap-3 sm:gap-4"
+      >
+        {/* Oversized mark — overflows the bar down into the page below. */}
+        <span className="relative block h-10 w-16 sm:h-14 sm:w-28">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-mark.webp"
+            alt=""
+            className="absolute left-0 top-0 h-16 w-16 max-w-none drop-shadow-[3px_3px_0_#000] sm:h-28 sm:w-28"
+          />
+        </span>
+        {/* Wordmark — wide, so shown only where there's room (lg+). */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/mamdanistan_logo.webp"
-          alt="Mamdanistan"
-          className="h-10 w-auto sm:h-14"
+          src="/logo-wordmark.webp"
+          alt=""
+          className="hidden w-auto lg:block lg:h-12"
         />
       </Link>
       <nav className="flex items-center gap-3 sm:gap-5">

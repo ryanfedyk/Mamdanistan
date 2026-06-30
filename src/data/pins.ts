@@ -72,6 +72,92 @@ export const MAP_PINS: MapPin[] = [
       },
     ],
   },
+  {
+    id: "fare-free-bus",
+    title: "Fare-Free Transit Grid",
+    tagline: "Tap your MetroCard on nothing. The bus is free now.",
+    description:
+      "Fare boxes are being quietly decommissioned to make public transit a " +
+      "guaranteed city right. All-door boarding, no swipe, no tap, no stress. " +
+      "Riders report the bus is somehow faster when nobody's fighting the " +
+      "card reader. The MTA's accountants are lying down.",
+    borough: "The Bronx",
+    neighborhood: "Fordham Road Corridor",
+    category: "transit",
+    mapPosition: { x: 48.2, y: 62.5 },
+    gameSlug: "bus-lane-blitz",
+    progress: 35,
+    statusBanner: "FARE BOX: DECOMMISSIONED",
+    references: [
+      { label: "Riders board through every door", kind: "article" },
+      { label: "Free routes in service", kind: "metric", value: "5 boroughs" },
+      { label: "Avg. boarding time", kind: "metric", value: "−40%" },
+    ],
+  },
+  {
+    id: "rent-freeze",
+    title: "The Million-Unit Rent Freeze",
+    tagline: "1,000,000 apartments. Zero rent hikes. Landlords furious.",
+    description:
+      "Rents frozen on a million stabilized apartments to protect working-class " +
+      "tenants. Somewhere, a landlord refreshes a spreadsheet that refuses to " +
+      "go up. Tenants exhale for the first time since the lease was signed.",
+    borough: "Brooklyn",
+    neighborhood: "Stabilized Units Citywide",
+    category: "housing",
+    mapPosition: { x: 65.1, y: 50.4 },
+    gameSlug: "landlord-invaders",
+    progress: 20,
+    statusBanner: "RENT: FROZEN SOLID",
+    references: [
+      { label: "Tenants exhale for the first time", kind: "press" },
+      { label: "Stabilized units protected", kind: "metric", value: "1,000,000" },
+      { label: "Scheduled rent hikes", kind: "metric", value: "0" },
+    ],
+  },
+  {
+    id: "universal-childcare",
+    title: "Universal Toddler Oasis",
+    tagline: "Free childcare for every 2-year-old. The yacht class is chipping in.",
+    description:
+      "Universal free childcare for two-year-olds, funded by a modest tax on " +
+      "the ultra-rich. Toddlers gain an oasis; hedge funds gain a slightly " +
+      "smaller third home. The kids do not care about the discourse. They are " +
+      "eating snacks.",
+    borough: "Manhattan",
+    neighborhood: "East Harlem",
+    category: "infrastructure",
+    mapPosition: { x: 35.8, y: 22.1 },
+    gameSlug: "toddler-tycoon",
+    progress: 15,
+    statusBanner: "CHILDCARE: UNIVERSAL",
+    references: [
+      { label: "Funded by taxing the ultra-rich", kind: "article" },
+      { label: "2-year-olds covered", kind: "metric", value: "all of them" },
+      { label: "Out-of-pocket cost", kind: "metric", value: "$0" },
+    ],
+  },
+  {
+    id: "pothole-blitz",
+    title: "The 165K Pothole Patch",
+    tagline: "165,000 potholes paved. Bureaucracy paved over too.",
+    description:
+      "A record-pace blitz patching 165,000 road hazards across the five " +
+      "boroughs. Your fillings are safe. Your axle is safe. The pothole that " +
+      "ate a Honda Civic in 2019 has been brought to justice.",
+    borough: "Queens",
+    neighborhood: "Citywide Roadways",
+    category: "infrastructure",
+    mapPosition: { x: 52.4, y: 38.9 },
+    gameSlug: "asphalt-attack",
+    progress: 78,
+    statusBanner: "BUREAUCRACY LEVEL: DEFEATED",
+    references: [
+      { label: "Road hazards cleared in record time", kind: "article" },
+      { label: "Potholes filled", kind: "metric", value: "165,000" },
+      { label: "Civics rescued", kind: "metric", value: "countless" },
+    ],
+  },
 ];
 
 /** Lookup helper for routing / detail views. */

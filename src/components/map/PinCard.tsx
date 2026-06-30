@@ -1,5 +1,7 @@
+import Link from "next/link";
 import type { MapPin } from "@/lib/types";
 import { CATEGORY_COLORS, CATEGORY_GLYPHS } from "@/data/pins";
+import { getCabinet } from "@/data/games";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { StatusBanner } from "@/components/ui/StatusBanner";
 
@@ -52,6 +54,8 @@ export function PinCard({ pin, onClose }: { pin: MapPin; onClose?: () => void })
 
         <ProgressBar value={pin.progress} label="Win progress" color={color} />
 
+        {pin.gameSlug && <MissionLink slug={pin.gameSlug} />}
+
         <div>
           <h4 className="mb-2 brutal-heading text-base text-black">
             The Receipts
@@ -89,6 +93,21 @@ export function PinCard({ pin, onClose }: { pin: MapPin; onClose?: () => void })
         </div>
       </div>
     </article>
+  );
+}
+
+/** CTA linking a win to its arcade mission. Falls back to the hub for
+ *  games that aren't built yet (shown as "coming soon"). */
+function MissionLink({ slug }: { slug: string }) {
+  const cabinet = getCabinet(slug);
+  const href = cabinet ? `/arcade/${slug}` : "/arcade";
+  return (
+    <Link
+      href={href}
+      className="btn-brutal w-full bg-primary text-white brutal-shadow"
+    >
+      {cabinet ? "▶ Play the Mission" : "▶ Mission Incoming (Soon)"}
+    </Link>
   );
 }
 

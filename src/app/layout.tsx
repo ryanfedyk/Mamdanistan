@@ -41,8 +41,13 @@ export const viewport: Viewport = {
 function NavBar() {
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between border-b-4 border-outline bg-secondary px-4 py-4 shadow-brutal md:px-12">
-      <Link href="/" className="brutal-heading text-2xl tracking-tighter text-primary sm:text-3xl">
-        Mamdani-stan
+      <Link href="/" aria-label="Mamdanistan — home" className="flex items-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/mamdanistan_logo.webp"
+          alt="Mamdanistan"
+          className="h-9 w-auto sm:h-11"
+        />
       </Link>
       <nav className="flex items-center gap-3 sm:gap-5">
         <Link

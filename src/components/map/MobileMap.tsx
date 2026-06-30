@@ -308,7 +308,15 @@ export function MobileMap() {
   );
 }
 
-/** Draggable bottom sheet — drag handle to resize, drag down to dismiss. */
+const FULL = 0.92;
+const DISMISS = 0.26;
+
+/**
+ * Draggable bottom sheet. Drag the handle to resize; tap it to toggle
+ * peek/full. Swiping up on the body expands the sheet first and only
+ * scrolls the content once it's fully open (Google-Maps behaviour);
+ * swiping the body down while it's scrolled to the top collapses it.
+ */
 function BottomSheet({
   children,
   onClose,
@@ -316,35 +324,57 @@ function BottomSheet({
   children: React.ReactNode;
   onClose: () => void;
 }) {
-  const FULL = 0.92;
-  const DISMISS = 0.26;
   const [frac, setFrac] = useState(PEEK);
   const [dragging, setDragging] = useState(false);
-  const drag = useRef<{ y: number; frac: number; avail: number; moved: boolean } | null>(null);
+  const drag = useRef<{
+    y: number;
+    frac: number;
+    avail: number;
+    moved: boolean;
+    active: boolean;
+    /** "resize" always drives height; "scroll" defers to native content
+        scrolling; "maybe" resizes only once the finger moves down. */
+    mode: "resize" | "scroll" | "maybe";
+  } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
-  const onDown = (e: React.PointerEvent) => {
+  const isFull = frac >= FULL - 0.005;
+
+  const begin = (e: React.PointerEvent, source: "handle" | "body") => {
     const avail = ref.current?.parentElement?.clientHeight ?? window.innerHeight;
-    drag.current = { y: e.clientY, frac, avail, moved: false };
-    setDragging(true);
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    const atTop = (bodyRef.current?.scrollTop ?? 0) <= 0;
+    const mode: "resize" | "scroll" | "maybe" =
+      source === "handle" || !isFull ? "resize" : atTop ? "maybe" : "scroll";
+    drag.current = { y: e.clientY, frac, avail, moved: false, active: false, mode };
+    if (source === "handle") e.currentTarget.setPointerCapture?.(e.pointerId);
   };
-  const onMove = (e: React.PointerEvent) => {
+
+  const move = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d) return;
-    if (Math.abs(e.clientY - d.y) > 6) d.moved = true;
-    const delta = (d.y - e.clientY) / d.avail;
-    setFrac(Math.max(0.14, Math.min(FULL, +(d.frac + delta).toFixed(3))));
+    const dy = d.y - e.clientY; // up is positive
+    if (Math.abs(dy) > 6) d.moved = true;
+    if (d.mode === "scroll") return; // let the body scroll natively
+    if (d.mode === "maybe") {
+      if (dy < 0) d.mode = "resize"; // dragging down at the top → collapse
+      else return; // dragging up while open → native scroll
+    }
+    d.active = true;
+    if (!dragging) setDragging(true);
+    setFrac(Math.max(0.14, Math.min(FULL, +(d.frac + dy / d.avail).toFixed(3))));
   };
-  const onUp = () => {
+
+  const end = (source: "handle" | "body") => {
     const d = drag.current;
     drag.current = null;
     setDragging(false);
     if (!d) return;
-    if (!d.moved) {
+    if (source === "handle" && !d.moved) {
       setFrac((f) => (f >= FULL - 0.05 ? PEEK : FULL));
       return;
     }
+    if (!d.active) return; // a tap or a native scroll — leave height alone
     setFrac((f) => {
       if (f < DISMISS) {
         onClose();
@@ -363,10 +393,10 @@ function BottomSheet({
       }`}
     >
       <div
-        onPointerDown={onDown}
-        onPointerMove={onMove}
-        onPointerUp={onUp}
-        onPointerCancel={onUp}
+        onPointerDown={(e) => begin(e, "handle")}
+        onPointerMove={move}
+        onPointerUp={() => end("handle")}
+        onPointerCancel={() => end("handle")}
         className="flex touch-none items-center gap-2 border-b-2 border-outline px-2 py-1"
       >
         <span className="pointer-events-none flex flex-1 justify-center py-2">
@@ -381,7 +411,19 @@ function BottomSheet({
           ✕
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto" style={{ touchAction: "pan-y" }}>
+      <div
+        ref={bodyRef}
+        onPointerDown={(e) => begin(e, "body")}
+        onPointerMove={move}
+        onPointerUp={() => end("body")}
+        onPointerCancel={() => end("body")}
+        className={`min-h-0 flex-1 overscroll-contain ${
+          isFull ? "overflow-auto" : "overflow-hidden"
+        }`}
+        // While dragging, suppress native scroll so the resize gesture wins;
+        // once open and settled, allow vertical content scrolling.
+        style={{ touchAction: isFull && !dragging ? "pan-y" : "none" }}
+      >
         {children}
       </div>
     </div>

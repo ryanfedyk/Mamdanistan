@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 @layer base {
-  /* ===== DEFAULT SKIN: 1970s NYC campaign ===== */
+  /* ===== DEFAULT SKIN: neo-brutalist ===== */
   body {
-    @apply bg-campaign-cream text-campaign-ink font-sans antialiased;
-    background-image:
-      radial-gradient(circle at 50% -5%, rgba(38, 25, 209, 0.1), transparent 55%),
-      theme("backgroundImage.halftone");
-    background-size: auto, 14px 14px;
+    @apply bg-background text-on-surface font-sans antialiased;
+  }
+
+  ::selection {
+    @apply bg-primary text-white;
   }
 
   /* Crisp pixel rendering for sprite/canvas art. */
@@ -28,45 +28,45 @@
 }
 
 @layer components {
-  /* ---------- Campaign components ---------- */
-
-  /* Retro poster heading. Pair with font-display. */
-  .poster-heading {
-    @apply font-display font-black tracking-tight text-campaign-navy;
+  /* ---------- Brutalist primitives ---------- */
+  .brutal-border {
+    @apply border-4 border-outline;
+  }
+  .brutal-shadow {
+    box-shadow: 6px 6px 0 0 #000000;
+  }
+  .brutal-shadow-blue {
+    box-shadow: 8px 8px 0 0 #0000ff;
+  }
+  .brutal-shadow-yellow {
+    box-shadow: 8px 8px 0 0 #ffa500;
+  }
+  .brutal-shadow-red {
+    box-shadow: 8px 8px 0 0 #ff0000;
   }
 
-  /* Cream paper panel with hard poster shadow. */
-  .card-poster {
-    @apply relative rounded-xl border-2 border-campaign-navy bg-campaign-paper shadow-poster;
+  /* Heavy uppercase poster heading. */
+  .brutal-heading {
+    @apply font-display font-black uppercase tracking-tight;
   }
 
-  /* Small pill/eyebrow label. */
-  .eyebrow {
-    @apply inline-flex items-center gap-1.5 rounded-full border-2 border-campaign-navy bg-campaign-sun px-3 py-1 font-display text-xs font-bold uppercase tracking-wide text-campaign-navy;
+  /* Card surface with hard border + shadow. */
+  .brutal-card {
+    @apply brutal-border brutal-shadow bg-surface;
   }
 
-  /* Sunburst backdrop helper. */
-  .sunburst-bg {
-    @apply pointer-events-none absolute inset-0 -z-10 opacity-[0.14];
-    background: theme("backgroundImage.sunburst");
-    mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 70%);
-    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 70%);
+  /* Brutalist button: press into its shadow on hover/active. */
+  .btn-brutal {
+    @apply inline-flex min-h-[48px] items-center justify-center gap-2 border-4 border-outline px-6 py-3 font-display font-black uppercase tracking-wide transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none active:scale-95;
   }
 
   /* ---------- Arcade skin (scoped) ---------- */
-
-  /* Wrap any arcade region in `.arcade-theme` to flip into 16-bit mode. */
   .arcade-theme {
     @apply bg-mamdani-ink font-terminal text-mamdani-fog;
     background-image:
       radial-gradient(circle at 50% -10%, rgba(33, 212, 253, 0.08), transparent 60%),
       theme("backgroundImage.grid-tactical");
     background-size: auto, 32px 32px;
-  }
-
-  .arcade-theme .pixel-heading {
-    @apply font-pixel uppercase tracking-wider text-mamdani-gold;
-    text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7);
   }
 
   .pixel-heading {
@@ -80,6 +80,6 @@
   }
 
   .panel {
-    @apply relative rounded-md border-2 border-mamdani-steel bg-mamdani-slate/80 shadow-pixel backdrop-blur-sm;
+    @apply relative border-2 border-mamdani-steel bg-mamdani-slate/80 shadow-pixel backdrop-blur-sm;
   }
 }

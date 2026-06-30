@@ -1,6 +1,6 @@
 /**
- * Campaign-style status chip, e.g. "BUREAUCRACY LEVEL: DEFEATED".
- * Pill on the cream/blue palette with a waving flag.
+ * Brutalist status chip, e.g. "BUREAUCRACY LEVEL: DEFEATED".
+ * Hard-bordered block with a blinking live dot.
  */
 export function StatusBanner({
   text,
@@ -10,19 +10,17 @@ export function StatusBanner({
   tone?: "victory" | "alert" | "neutral";
 }) {
   const tones = {
-    victory: "bg-campaign-sun text-campaign-navy border-campaign-navy",
-    alert: "bg-campaign-brick text-campaign-cream border-campaign-navy",
-    neutral: "bg-campaign-cream text-campaign-navy border-campaign-navy",
+    victory: "bg-secondary text-on-secondary",
+    alert: "bg-tertiary text-white",
+    neutral: "bg-white text-black",
   } as const;
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-full border-2 ${tones[tone]} px-3 py-1.5 shadow-poster-sm`}
+      className={`inline-flex items-center gap-2 border-4 border-outline ${tones[tone]} px-3 py-1.5 brutal-shadow`}
     >
-      <span className="animate-flag-wave" aria-hidden>
-        🚩
-      </span>
-      <span className="font-display text-xs font-bold uppercase tracking-wide">
+      <span className="h-3 w-3 animate-blink rounded-full bg-tertiary shadow-[2px_2px_0_0_#000]" />
+      <span className="font-display text-xs font-black uppercase tracking-wide">
         {text}
       </span>
     </div>

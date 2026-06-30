@@ -1,51 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import type { MapPin } from "@/lib/types";
 import { MAP_PINS, CATEGORY_COLORS, CATEGORY_GLYPHS } from "@/data/pins";
 import { PinCard } from "@/components/map/PinCard";
 
 /**
- * THE GRID — interactive tactical map of the five boroughs.
- * Client-only (Leaflet touches `window`); load via next/dynamic with
- * `ssr: false`. Clicking a pin pulls its localized card alongside the map.
+ * THE GRID — the illustrated tactical map of NYC.
+ * A hand-drawn map image (public/map-nyc.png) with interactive win-pins
+ * positioned on top via percentage coordinates (pin.mapPosition). Clicking a
+ * pin pulls its localized card. No tile layer / Leaflet — lighter on mobile.
  */
-
-// NYC, framed so all five boroughs sit on screen.
-const NYC_CENTER: [number, number] = [40.7128, -74.006];
-const NYC_ZOOM = 11;
-
-/** Build a campaign flag-pin divIcon for a given win category. */
-function flagIcon(pin: MapPin, active: boolean): L.DivIcon {
-  const color = CATEGORY_COLORS[pin.category];
-  const glyph = CATEGORY_GLYPHS[pin.category];
-  return L.divIcon({
-    className: "mamdani-pin",
-    html: `
-      <div style="
-        position: relative;
-        transform: translate(-50%, -100%) ${active ? "scale(1.18)" : "scale(1)"};
-        transition: transform 120ms ease-out;
-      ">
-        <div style="
-          width: 34px; height: 34px;
-          display: grid; place-items: center;
-          background: ${color};
-          border: 3px solid #180F78;
-          border-radius: 50% 50% 50% 0;
-          transform: rotate(-45deg);
-          box-shadow: ${active ? `0 0 0 4px #FFAB00` : "2px 2px 0 rgba(24,15,120,0.5)"};
-        ">
-          <span style="transform: rotate(45deg); font-size: 15px; line-height: 1;">${glyph}</span>
-        </div>
-      </div>`,
-    iconSize: [34, 42],
-    iconAnchor: [17, 42],
-  });
-}
+const MAP_SRC = "/map-nyc.png";
 
 export function ImpactMap() {
   const [activeId, setActiveId] = useState<string>(MAP_PINS[0]?.id ?? "");
@@ -56,39 +22,42 @@ export function ImpactMap() {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-      {/* Map canvas */}
-      <div className="card-poster h-[58vh] overflow-hidden p-0 sm:h-[520px]">
-        <MapContainer
-          center={NYC_CENTER}
-          zoom={NYC_ZOOM}
-          scrollWheelZoom
-          preferCanvas
-          className="h-full w-full"
-          style={{ background: "#FBF3DE" }}
-        >
-          {/* Polished light vector basemap, on-brand with the cream palette. */}
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+      {/* Illustrated map + pin overlay (scrollable on small screens) */}
+      <div className="relative max-h-[70vh] overflow-auto border-4 border-outline bg-secondary brutal-shadow-yellow">
+        <div className="relative w-full min-w-[420px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={MAP_SRC}
+            alt="Illustrated tactical map of New York City"
+            className="block w-full select-none"
+            draggable={false}
           />
-          {MAP_PINS.map((pin) => (
-            <Marker
-              key={pin.id}
-              position={pin.coordinates}
-              icon={flagIcon(pin, pin.id === activeId)}
-              eventHandlers={{ click: () => setActiveId(pin.id) }}
-            />
-          ))}
-        </MapContainer>
+
+          {MAP_PINS.map((pin) =>
+            pin.mapPosition ? (
+              <MapPinButton
+                key={pin.id}
+                pin={pin}
+                active={pin.id === activeId}
+                onSelect={() => setActiveId(pin.id)}
+              />
+            ) : null,
+          )}
+
+          {/* Brutalist coord HUD */}
+          <div className="absolute bottom-2 right-2 border-2 border-white bg-black px-2 py-1 font-mono text-[10px] text-secondary">
+            <p>LIBERATION PROGRESS: LIVE</p>
+          </div>
+        </div>
       </div>
 
-      {/* Localized card view */}
+      {/* Pin list + localized card */}
       <div className="space-y-3">
         <PinList activeId={activeId} onSelect={setActiveId} />
         {activePin ? (
           <PinCard pin={activePin} />
         ) : (
-          <p className="font-sans text-lg text-campaign-ink/70">
+          <p className="text-lg font-bold text-white">
             Tap a flag on The Grid to read the receipts.
           </p>
         )}
@@ -97,7 +66,40 @@ export function ImpactMap() {
   );
 }
 
-/** Compact selectable list so the map is tappable + keyboard-navigable. */
+/** A single brutalist square pin positioned over the illustration. */
+function MapPinButton({
+  pin,
+  active,
+  onSelect,
+}: {
+  pin: MapPin;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  const color = CATEGORY_COLORS[pin.category];
+  const pos = pin.mapPosition!;
+  return (
+    <button
+      onClick={onSelect}
+      aria-label={pin.title}
+      className="absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center border-[3px] border-outline transition-all hover:z-10"
+      style={{
+        left: `${pos.x}%`,
+        top: `${pos.y}%`,
+        width: active ? 40 : 32,
+        height: active ? 40 : 32,
+        backgroundColor: color,
+        boxShadow: active ? "4px 4px 0 0 #FFA500" : "3px 3px 0 0 #000",
+        fontSize: active ? 20 : 16,
+        lineHeight: 1,
+      }}
+    >
+      <span aria-hidden>{CATEGORY_GLYPHS[pin.category]}</span>
+    </button>
+  );
+}
+
+/** Compact selectable list — tappable + keyboard-navigable. */
 function PinList({
   activeId,
   onSelect,
@@ -114,8 +116,8 @@ function PinList({
           <button
             key={pin.id}
             onClick={() => onSelect(pin.id)}
-            className={`flex min-h-[44px] items-center gap-1.5 rounded-full border-2 border-campaign-navy px-3 py-2 font-display text-sm font-bold transition-transform hover:-translate-y-0.5 ${
-              active ? "text-campaign-cream shadow-poster-sm" : "bg-campaign-cream text-campaign-navy"
+            className={`flex min-h-[44px] items-center gap-1.5 border-4 border-outline px-3 py-2 text-sm font-black uppercase transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none ${
+              active ? "text-white brutal-shadow" : "bg-white text-black brutal-shadow"
             }`}
             style={active ? { backgroundColor: color } : undefined}
           >

@@ -1,23 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, DM_Sans, Press_Start_2P, VT323 } from "next/font/google";
+import { Inter, Press_Start_2P, VT323 } from "next/font/google";
 import Link from "next/link";
 import { FirebaseAnalytics } from "@/components/FirebaseAnalytics";
 import "./globals.css";
 
-// ---- Campaign type: warm 70s serif display + clean grotesque body ----
-const display = Fraunces({
+// Site type: one heavy grotesque, used 400–900.
+const sans = Inter({
   subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-  axes: ["SOFT", "WONK", "opsz"],
-});
-const sans = DM_Sans({
-  subsets: ["latin"],
+  weight: ["400", "700", "800", "900"],
   variable: "--font-sans",
   display: "swap",
 });
 
-// ---- Arcade type: 16-bit display + terminal (scoped to /arcade) ----
+// Arcade type (scoped to /arcade).
 const pixel = Press_Start_2P({
   weight: "400",
   subsets: ["latin"],
@@ -32,43 +27,42 @@ const terminal = VT323({
 });
 
 export const metadata: Metadata = {
-  title: "Welcome to Mamdanistan",
+  title: "Mamdani-stan | Liberation Front",
   description:
     "The potholes are fixed. The pools are open. Panic accordingly. A tongue-in-cheek civic dashboard and retro arcade tracking New York's material wins.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2619D1",
+  themeColor: "#0000FF",
   width: "device-width",
   initialScale: 1,
 };
 
 function NavBar() {
   return (
-    <header className="sticky top-0 z-[1000] border-b-2 border-campaign-navy bg-campaign-blue text-campaign-cream">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="group flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-full border-2 border-campaign-navy bg-campaign-sun text-base">
-            🗽
-          </span>
-          <span className="font-display text-lg font-black tracking-tight sm:text-xl">
-            Mamdanistan
-          </span>
+    <header className="sticky top-0 z-50 flex items-center justify-between border-b-4 border-outline bg-secondary px-4 py-4 shadow-brutal md:px-12">
+      <Link href="/" className="brutal-heading text-2xl tracking-tighter text-primary sm:text-3xl">
+        Mamdani-stan
+      </Link>
+      <nav className="flex items-center gap-3 sm:gap-5">
+        <Link
+          href="/"
+          className="hidden border-2 border-outline bg-white px-4 py-1 text-sm font-black uppercase text-on-secondary brutal-shadow-blue transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none sm:inline-block"
+        >
+          Home
         </Link>
-        <div className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide sm:gap-3 sm:text-base">
-          <Link
-            href="/grid"
-            className="rounded-full px-3 py-1.5 transition-colors hover:bg-campaign-navy/40"
-          >
-            The Grid
-          </Link>
-          <Link
-            href="/arcade"
-            className="rounded-full border-2 border-campaign-navy bg-campaign-sun px-3 py-1.5 text-campaign-navy transition-transform hover:-translate-y-0.5"
-          >
-            The Arcade
-          </Link>
-        </div>
+        <Link
+          href="/grid"
+          className="text-sm font-black uppercase text-on-secondary hover:border-b-4 hover:border-outline"
+        >
+          The Grid
+        </Link>
+        <Link
+          href="/arcade"
+          className="border-2 border-outline bg-primary px-3 py-1 text-sm font-black uppercase text-white transition-all hover:translate-x-[1px] hover:translate-y-[1px]"
+        >
+          Arcade
+        </Link>
       </nav>
     </header>
   );
@@ -76,13 +70,13 @@ function NavBar() {
 
 function Footer() {
   return (
-    <footer className="mt-20 border-t-2 border-campaign-navy bg-campaign-blue px-4 py-10 text-center text-campaign-cream">
-      <p className="font-display text-lg font-bold">
-        Made in the five boroughs.
-      </p>
-      <p className="mt-1 font-sans text-sm text-campaign-cream/80">
-        No potholes were spared in the making of this site. Satire. Probably.{" "}
-        <span className="animate-blink text-campaign-sun">▮</span>
+    <footer className="flex flex-col items-center justify-between gap-6 border-t-4 border-outline bg-primary px-4 py-10 text-white shadow-[0_-6px_0_0_#000] md:flex-row md:px-12">
+      <div className="border-2 border-outline bg-secondary px-4 py-2 text-lg font-black uppercase text-on-secondary brutal-shadow-red">
+        Mamdani-stan Liberation Front
+      </div>
+      <p className="max-w-[260px] text-center text-[10px] font-bold uppercase tracking-tighter opacity-80 md:text-right">
+        © 1974 Mamdani-stan Liberation Front. Property of the People. Satire.
+        Probably. <span className="animate-blink text-secondary">▮</span>
       </p>
     </footer>
   );
@@ -94,12 +88,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${display.variable} ${sans.variable} ${pixel.variable} ${terminal.variable}`}
+      className={`${sans.variable} ${pixel.variable} ${terminal.variable}`}
     >
       <body className="min-h-screen">
         <FirebaseAnalytics />
         <NavBar />
-        <main className="mx-auto max-w-6xl px-4 py-8 sm:py-10">{children}</main>
+        <main>{children}</main>
         <Footer />
       </body>
     </html>

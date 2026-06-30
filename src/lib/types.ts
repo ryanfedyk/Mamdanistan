@@ -62,6 +62,11 @@ export interface MapPin {
   neighborhood: string;
   category: WinCategory;
   coordinates: LatLng;
+  /**
+   * Position on the illustrated map, as percentages (0–100) of the image's
+   * width/height. Used to place the pin overlay. Omit to hide the pin.
+   */
+  mapPosition?: { x: number; y: number };
   /** 0–100. Drives the cheeky progress bar on the card. */
   progress: number;
   /** Pixel-flag status banner, e.g. "BUREAUCRACY LEVEL: DEFEATED". */

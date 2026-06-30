@@ -19,6 +19,7 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "East Harlem",
     category: "pools",
     coordinates: [40.7957, -73.9389],
+    mapPosition: { x: 41, y: 27 }, // East Harlem, above Central Park
     progress: 100,
     statusBanner: "POOL SEASON: UNLOCKED",
     references: [
@@ -51,6 +52,7 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Williamsburg ↔ Lower East Side",
     category: "infrastructure",
     coordinates: [40.7133, -73.9724],
+    mapPosition: { x: 49, y: 62 }, // Williamsburg Bridge over the East River
     progress: 92,
     statusBanner: "BUREAUCRACY LEVEL: DEFEATED",
     references: [
@@ -79,11 +81,11 @@ export function getPinById(id: string): MapPin | undefined {
 
 /** Hex accents per win category — campaign palette; keeps markers + cards in sync. */
 export const CATEGORY_COLORS: Record<WinCategory, string> = {
-  pools: "#2619D1", // brand electric blue (water)
-  infrastructure: "#F0431F", // brand red-orange
-  housing: "#FFAB00", // brand amber-orange
-  transit: "#5B6FE0", // soft sky blue
-  parks: "#5F8A3A", // 70s olive green
+  pools: "#0000FF", // electric blue (water)
+  infrastructure: "#FF0000", // red
+  housing: "#FFA500", // orange
+  transit: "#0000FF", // blue
+  parks: "#FFA500", // orange
 };
 
 /** Pixel-flag glyph per category, used on markers + legend. */

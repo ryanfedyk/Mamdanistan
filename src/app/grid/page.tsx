@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { StatusBanner } from "@/components/ui/StatusBanner";
 import { CATEGORY_GLYPHS } from "@/data/pins";
 import type { WinCategory } from "@/lib/types";
 
@@ -11,9 +10,9 @@ const ImpactMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="card-poster grid h-[60vh] place-items-center sm:h-[520px]">
-        <p className="animate-blink font-display text-lg font-bold text-campaign-blue">
-          DEPLOYING TACTICAL MAP…
+      <div className="grid h-[60vh] place-items-center border-4 border-outline bg-white brutal-shadow sm:h-[520px]">
+        <p className="animate-blink font-display text-lg font-black uppercase text-primary">
+          Deploying Tactical Map…
         </p>
       </div>
     ),
@@ -30,32 +29,35 @@ const LEGEND: Array<{ cat: WinCategory; label: string }> = [
 
 export default function GridPage() {
   return (
-    <div className="space-y-6">
-      <header className="space-y-3">
-        <p className="eyebrow">Spatial Intel · Five Boroughs</p>
-        <h1 className="poster-heading text-4xl sm:text-5xl">The Grid</h1>
-        <p className="max-w-2xl font-sans text-lg leading-relaxed text-campaign-ink/80">
-          Every flag is a confirmed material win. Tap one to pull the localized
-          briefing — news clips, press, and the cold hard stats. Yes, the map is
-          this clean on purpose.
-        </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <StatusBanner text="GRID STATUS: ONLINE" tone="neutral" />
+    <div className="border-b-4 border-outline bg-primary py-12 text-white sm:py-16">
+      <div className="mx-auto max-w-[1200px] space-y-8 px-4 md:px-12">
+        <header className="space-y-4 border-b-4 border-white pb-6">
+          <h1 className="brutal-heading text-4xl tracking-tight sm:text-5xl">
+            Tactical Map: The Five Boroughs
+          </h1>
+          <div className="flex items-center gap-3 text-sm font-black uppercase text-secondary">
+            <span className="h-4 w-4 animate-blink rounded-full bg-tertiary shadow-[2px_2px_0_0_#fff]" />
+            Live Uplink: NYC Command Center
+          </div>
+          <p className="max-w-2xl text-lg font-bold leading-relaxed text-white">
+            Every flag is a confirmed material win. Tap one to pull the localized
+            briefing — news clips, press, and the cold hard stats.
+          </p>
           <ul className="flex flex-wrap gap-3">
             {LEGEND.map(({ cat, label }) => (
               <li
                 key={cat}
-                className="flex items-center gap-1 font-display text-sm font-bold text-campaign-ink/70"
+                className="flex items-center gap-1 border-2 border-white bg-primary px-2 py-1 text-xs font-black uppercase"
               >
                 <span aria-hidden>{CATEGORY_GLYPHS[cat]}</span>
                 {label}
               </li>
             ))}
           </ul>
-        </div>
-      </header>
+        </header>
 
-      <ImpactMap />
+        <ImpactMap />
+      </div>
     </div>
   );
 }

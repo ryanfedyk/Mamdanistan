@@ -3,12 +3,12 @@ import type { Config } from "tailwindcss";
 /**
  * Mamdanistan Design System — TWO worlds.
  *
- *  1. `campaign.*`  — the default site skin. A 1970s NYC campaign-poster vibe:
- *                     warm cream paper, deep NYC blue, taxi yellow, brick-orange
- *                     accent, retro serif display type, sunburst + halftone.
+ *  1. `brutal.*` / semantic tokens — the default site skin. Neo-brutalist:
+ *     pure electric blue / orange / red, 4px black borders, hard offset
+ *     shadows, Inter black uppercase, sharp corners on a light surface.
  *
- *  2. `mamdani.*`   — the Arcade-only skin. The classic 16-bit dark cabinet
- *                     palette. Scoped to /arcade via a nested layout.
+ *  2. `mamdani.*` — the Arcade-only skin. The classic 16-bit dark cabinet
+ *     palette. Scoped to /arcade via a nested layout.
  */
 const config: Config = {
   content: [
@@ -19,19 +19,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ---- Campaign skin (default site) ----
-        // Brand colors sampled from zohranfornyc.com.
-        campaign: {
-          blue: "#2619D1", // electric ultramarine (donate panel / wordmark)
-          navy: "#180F78", // dark brand blue — borders, shadows, strong text
-          sky: "#5B6FE0", // soft secondary blue
-          sun: "#FFAB00", // brand amber-orange (primary accent)
-          gold: "#E59A00", // deeper orange
-          cream: "#FBF3DE", // warm 70s paper background
-          paper: "#F4E8C8", // panel paper
-          brick: "#F0431F", // punchy red-orange (wordmark shadow / alerts)
-          ink: "#1A1466", // primary body text (brand-blue ink)
-        },
+        // ---- Neo-brutalist skin (default site) ----
+        primary: "#0000FF", // electric blue
+        secondary: "#FFA500", // orange
+        tertiary: "#FF0000", // red
+        background: "#f9f9f9",
+        surface: "#ffffff",
+        "on-primary": "#ffffff",
+        "on-secondary": "#000000",
+        "on-surface": "#1b1b1b",
+        outline: "#000000",
 
         // ---- Arcade skin (/arcade only) ----
         mamdani: {
@@ -46,22 +43,34 @@ const config: Config = {
           fog: "#9AA7C7",
         },
       },
+      borderRadius: {
+        // Brutalism = sharp corners. Pills stay round.
+        DEFAULT: "0rem",
+        sm: "0rem",
+        md: "0rem",
+        lg: "0rem",
+        xl: "0rem",
+        "2xl": "0rem",
+        full: "9999px",
+      },
       fontFamily: {
-        // Campaign type
-        display: ["var(--font-display)", "Georgia", "serif"], // Fraunces
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"], // DM Sans
-        // Arcade type
+        // Campaign/site type: one heavy grotesque.
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"], // Inter
+        display: ["var(--font-sans)", "system-ui", "sans-serif"],
+        // Arcade type.
         pixel: ["var(--font-pixel)", "monospace"], // Press Start 2P
         terminal: ["var(--font-terminal)", "monospace"], // VT323
       },
       boxShadow: {
-        // Campaign: hard 70s poster offset (brand-blue ink)
-        poster: "5px 5px 0 0 #180F78",
-        "poster-sun": "5px 5px 0 0 #E59A00",
-        "poster-sm": "3px 3px 0 0 #180F78",
-        // Arcade: chunky cabinet depth
+        // Brutalist hard offsets (no blur).
+        brutal: "6px 6px 0 0 #000000",
+        "brutal-sm": "3px 3px 0 0 #000000",
+        "brutal-lg": "8px 8px 0 0 #000000",
+        "brutal-blue": "8px 8px 0 0 #0000FF",
+        "brutal-yellow": "8px 8px 0 0 #FFA500",
+        "brutal-red": "8px 8px 0 0 #FF0000",
+        // Arcade cabinet depth.
         pixel: "4px 4px 0 0 rgba(0,0,0,0.6)",
-        "pixel-lg": "6px 6px 0 0 rgba(0,0,0,0.6)",
         glow: "0 0 20px rgba(33,212,253,0.45)",
         "glow-red": "0 0 22px rgba(255,46,77,0.5)",
       },
@@ -70,12 +79,6 @@ const config: Config = {
           "repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px)",
         "grid-tactical":
           "linear-gradient(rgba(33,212,253,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(33,212,253,0.08) 1px, transparent 1px)",
-        // 70s sunburst rays (place behind heroes)
-        sunburst:
-          "repeating-conic-gradient(from 0deg at 50% 50%, #FFAB00 0deg 10deg, #E59A00 10deg 20deg)",
-        // halftone dot wash
-        halftone:
-          "radial-gradient(circle, rgba(24,15,120,0.16) 1.1px, transparent 1.4px)",
       },
       keyframes: {
         blink: {
@@ -86,25 +89,15 @@ const config: Config = {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-3px)" },
         },
-        "flag-wave": {
-          "0%, 100%": { transform: "skewX(0deg) scaleY(1)" },
-          "50%": { transform: "skewX(-4deg) scaleY(0.98)" },
-        },
         "fill-up": {
           "0%": { width: "0%" },
           "100%": { width: "var(--bar-fill, 100%)" },
-        },
-        "spin-slow": {
-          "0%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(360deg)" },
         },
       },
       animation: {
         blink: "blink 1s steps(1) infinite",
         "press-start": "press-start 1.4s ease-in-out infinite",
-        "flag-wave": "flag-wave 2.5s ease-in-out infinite",
         "fill-up": "fill-up 1.2s ease-out forwards",
-        "spin-slow": "spin-slow 60s linear infinite",
       },
     },
   },

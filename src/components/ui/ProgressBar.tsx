@@ -1,11 +1,11 @@
 /**
- * Campaign-style progress bar. Navy-outlined track on paper, sun-yellow fill
- * that animates up on mount via the `--bar-fill` custom property.
+ * Brutalist progress bar: hard black-bordered track, solid color fill that
+ * animates up on mount via the `--bar-fill` custom property.
  */
 export function ProgressBar({
   value,
   label,
-  color = "#FFC72C",
+  color = "#0000FF",
 }: {
   value: number;
   label?: string;
@@ -15,14 +15,14 @@ export function ProgressBar({
   return (
     <div className="w-full">
       {label && (
-        <div className="mb-1 flex items-center justify-between font-display text-sm font-bold uppercase tracking-wide text-campaign-navy">
+        <div className="mb-1 flex items-center justify-between font-display text-xs font-black uppercase tracking-wide text-on-surface">
           <span>{label}</span>
           <span>{clamped}%</span>
         </div>
       )}
-      <div className="h-5 w-full overflow-hidden rounded-full border-2 border-campaign-navy bg-campaign-cream">
+      <div className="h-5 w-full overflow-hidden border-4 border-outline bg-white">
         <div
-          className="h-full animate-fill-up rounded-r-full"
+          className="h-full animate-fill-up"
           style={
             {
               backgroundColor: color,

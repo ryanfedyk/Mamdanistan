@@ -144,6 +144,36 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ---- FEATURED: HOT MIC ---- */}
+        <section className="border-4 border-outline bg-primary text-white brutal-shadow-yellow">
+          <div className="grid gap-6 p-8 sm:p-12 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div className="space-y-5">
+              <span className="inline-block border-2 border-outline bg-secondary px-2 py-0.5 text-xs font-black uppercase text-on-secondary">
+                Featured Mission
+              </span>
+              <h2 className="brutal-heading text-4xl leading-[0.95] sm:text-6xl">
+                Can you survive the press?
+              </h2>
+              <p className="max-w-xl text-lg font-bold leading-relaxed">
+                National reporters want a gaffe. Dodge the noise, pivot every
+                trap back to pools, rent, and buses — and don&apos;t become the
+                story. <span className="bg-tertiary px-1">Hot Mic</span> is the
+                press gauntlet.
+              </p>
+              <div className="max-w-sm space-y-2">
+                <FeatureMeter label="Momentum" pct={72} color="bg-secondary" />
+                <FeatureMeter label="Noise" pct={18} color="bg-tertiary" />
+              </div>
+              <Button href="/arcade/hot-mic" variant="orange">
+                🎙️ Play Hot Mic
+              </Button>
+            </div>
+            <div className="hidden text-[140px] leading-none lg:block" aria-hidden>
+              🎙️
+            </div>
+          </div>
+        </section>
+
         {/* ---- THE ARCADE PREVIEW ---- */}
         <section className="space-y-6">
           <SectionHeading kicker="Civic Engagement, Gamified" title="The Arcade" />
@@ -218,6 +248,28 @@ function HeroStat({
       <div className={`text-3xl font-black leading-none ${color}`}>{value}</div>
       <div className="mt-1 text-[10px] font-black uppercase tracking-tight text-black">
         {label}
+      </div>
+    </div>
+  );
+}
+
+function FeatureMeter({
+  label,
+  pct,
+  color,
+}: {
+  label: string;
+  pct: number;
+  color: string;
+}) {
+  return (
+    <div>
+      <div className="mb-1 flex justify-between text-xs font-black uppercase">
+        <span>{label}</span>
+        <span>{pct}%</span>
+      </div>
+      <div className="h-4 overflow-hidden border-2 border-outline bg-white">
+        <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

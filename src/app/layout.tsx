@@ -46,7 +46,7 @@ function NavBar() {
         <img
           src="/mamdanistan_logo.webp"
           alt="Mamdanistan"
-          className="h-9 w-auto sm:h-11"
+          className="h-10 w-auto sm:h-14"
         />
       </Link>
       <nav className="flex items-center gap-3 sm:gap-5">
@@ -58,13 +58,14 @@ function NavBar() {
         </Link>
         <Link
           href="/grid"
-          className="text-sm font-black uppercase text-on-secondary hover:border-b-4 hover:border-outline"
+          className="whitespace-nowrap text-sm font-black uppercase text-on-secondary hover:border-b-4 hover:border-outline"
         >
-          The Grid
+          <span className="sm:hidden">Grid</span>
+          <span className="hidden sm:inline">The Grid</span>
         </Link>
         <Link
           href="/arcade"
-          className="border-2 border-outline bg-primary px-3 py-1 text-sm font-black uppercase text-white transition-all hover:translate-x-[1px] hover:translate-y-[1px]"
+          className="whitespace-nowrap border-2 border-outline bg-primary px-3 py-1 text-sm font-black uppercase text-white transition-all hover:translate-x-[1px] hover:translate-y-[1px]"
         >
           Arcade
         </Link>

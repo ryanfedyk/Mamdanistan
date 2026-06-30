@@ -30,6 +30,42 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
     status: "stub",
   },
   {
+    id: "bus-lane-blitz",
+    title: "Bus Lane Blitz",
+    blurb: "Dodge the clutter. Free the bus.",
+    howToPlay:
+      "Use UP / DOWN (or the D-pad) to switch lanes and keep your fare-free " +
+      "bus out of double-parked cars, cones, and dead fare boxes. Survive the " +
+      "clock to blitz the bus lane wide open.",
+    accent: "mamdani-cyan",
+    glyph: "🚌",
+    status: "stub",
+  },
+  {
+    id: "toddler-tycoon",
+    title: "Toddler Tycoon",
+    blurb: "Catch every kid. Childcare for all.",
+    howToPlay:
+      "Slide the Toddler Oasis with ◀ ▶ (or the D-pad) to catch toddlers " +
+      "raining from the sky into free childcare. Survive the clock — drop too " +
+      "many and the program goes 'under review.'",
+    accent: "mamdani-gold",
+    glyph: "🧒",
+    status: "stub",
+  },
+  {
+    id: "asphalt-attack",
+    title: "Asphalt Attack",
+    blurb: "Patch potholes. Pave over bureaucracy.",
+    howToPlay:
+      "TAP potholes as they erupt across the grid to patch them before they " +
+      "cure into permanent craters. Survive the clock; let too many set and " +
+      "the road wins.",
+    accent: "mamdani-ember",
+    glyph: "🕳️",
+    status: "stub",
+  },
+  {
     id: "fix-the-city",
     title: "Fix the City",
     blurb: "Clear the lanes. Patch the potholes. Beat the clock.",

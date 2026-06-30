@@ -61,12 +61,15 @@ export interface MapPin {
   /** Human-readable neighborhood, e.g. "East Harlem". */
   neighborhood: string;
   category: WinCategory;
-  coordinates: LatLng;
+  /** Optional real-world geo point (legacy; the illustrated map uses mapPosition). */
+  coordinates?: LatLng;
   /**
    * Position on the illustrated map, as percentages (0–100) of the image's
    * width/height. Used to place the pin overlay. Omit to hide the pin.
    */
   mapPosition?: { x: number; y: number };
+  /** Optional arcade cabinet slug this win links to (e.g. "fix-the-city"). */
+  gameSlug?: string;
   /** 0–100. Drives the cheeky progress bar on the card. */
   progress: number;
   /** Pixel-flag status banner, e.g. "BUREAUCRACY LEVEL: DEFEATED". */

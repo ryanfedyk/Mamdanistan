@@ -158,6 +158,8 @@ export interface FormalPlungeState extends BaseGameState {
   nextSpawn: number;
   /** How far the pool background has scrolled (px) — drives the moving water. */
   bgScroll: number;
+  /** Finish-line x once it appears (null until the home stretch), in canvas px. */
+  finishX: number | null;
   /** Laps banked = wins racked up this run. */
   poolsUnlocked: number;
 }

@@ -26,6 +26,7 @@ const MOVE_SPEED = 3.2; // vertical glide speed while ▲/▼ is held
 const BASE_SCROLL = 2.3; // world speed at score 0
 const WATER_SCROLL = 1.9; // background scroll speed (the "moving water")
 const DIVE_FRAMES = 64;
+const FINISH_DIST = 1700; // background-scroll distance before the finish line appears
 
 // Scripted dive path (canvas coords): spring off the board, arc up, plunge in.
 const DIVE_START_X = 96;
@@ -42,18 +43,25 @@ const CAM_WIDE = { zoom: 1.0, cx: WIDTH / 2, cy: HEIGHT / 2 };
 const BOARD_END_SX = 470;
 
 const KINDS: BillionaireKind[] = ["elon", "baron", "snorkeler", "swan"];
+// Animation frame count per billionaire.
+const BILL_FRAMES: Record<BillionaireKind, number> = {
+  elon: 3,
+  baron: 2,
+  snorkeler: 3,
+  swan: 4,
+};
 // On-canvas height + width per billionaire (from sprite aspect ratios).
 const BILL_H: Record<BillionaireKind, number> = {
-  elon: 48,
-  baron: 74,
-  snorkeler: 42,
-  swan: 64,
+  elon: 46,
+  baron: 78,
+  snorkeler: 50,
+  swan: 74,
 };
 const BILL_ASPECT: Record<BillionaireKind, number> = {
-  elon: 1.68,
-  baron: 0.74,
-  snorkeler: 2.24,
-  swan: 1.09,
+  elon: 2.21,
+  baron: 1.24,
+  snorkeler: 1.99,
+  swan: 1.05,
 };
 
 /**
@@ -70,9 +78,9 @@ const BILL_CFG: Record<
   // rocket-suit bro — darts across fast, near-flat.
   elon: { speed: 1.45, amp: 5, freq: 0.14, band: [0.12, 0.85] },
   // robber baron — slow, steady, rides low sipping his tea.
-  baron: { speed: 0.9, amp: 3, freq: 0.05, band: [0.42, 0.92] },
+  baron: { speed: 0.95, amp: 3, freq: 0.05, band: [0.42, 0.92] },
   // cash-diver — medium pace but weaves up and down.
-  snorkeler: { speed: 1.08, amp: 30, freq: 0.05, band: [0.22, 0.76] },
+  snorkeler: { speed: 1.1, amp: 30, freq: 0.05, band: [0.22, 0.76] },
   // swan-float tycoon — big and slow, drifting along the surface.
   swan: { speed: 0.66, amp: 11, freq: 0.03, band: [0.0, 0.32] },
 };
@@ -117,6 +125,7 @@ function freshState(phase: FormalPlungeState["phase"]): FormalPlungeState {
     nextSpawn: 0,
     poolsUnlocked: 0,
     bgScroll: 0,
+    finishX: null,
   };
 }
 
@@ -215,8 +224,29 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
 
     const poolsUnlocked = Math.floor(score / 100);
 
+    // The home stretch: once he's swum far enough, the finish line rolls in
+    // from the right and no more billionaires spawn. Reaching it wins.
+    let finishX = state.finishX;
+    if (finishX === null && bgScroll >= FINISH_DIST) finishX = WIDTH + 70;
+    if (finishX !== null) {
+      finishX -= scroll * dt;
+      if (finishX <= SWIM_X) {
+        return {
+          ...state,
+          frame,
+          phase: "won",
+          score,
+          poolsUnlocked,
+          obstacles: kept,
+          bgScroll,
+          finishX: SWIM_X,
+          diver: { x, y, vy },
+        };
+      }
+    }
+
     let nextSpawn = state.nextSpawn;
-    if (frame >= nextSpawn) {
+    if (finishX === null && frame >= nextSpawn) {
       kept.push(spawnBillionaire(Math.floor(frame)));
       const gap = Math.max(58, 104 - poolsUnlocked * 5);
       nextSpawn = frame + gap;
@@ -256,6 +286,7 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
       obstacles: kept,
       nextSpawn,
       bgScroll,
+      finishX,
       diver: { x, y, vy },
     };
   },
@@ -269,11 +300,14 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     ctx.translate(-cam.cx, -cam.cy);
 
     drawScene(ctx, state);
+    if (state.finishX !== null) drawFinish(ctx, state.finishX, state.frame);
     for (const o of state.obstacles) drawBillionaire(ctx, o, state.frame);
 
     const d = state.diver;
     if (state.mode === "dive" || state.phase === "attract") {
       drawZohran(ctx, diveFrameName(state), d.x, d.y);
+    } else if (state.phase === "won") {
+      drawZohran(ctx, "win", d.x, d.y);
     } else {
       const cycle = ["swim1", "swim2", "swim3", "swim4"] as const;
       const name =
@@ -293,6 +327,15 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
       banner(ctx, "TAP TO KICK OFF", "▲▼ to dodge the billionaires");
     } else if (state.phase === "gameover") {
       banner(ctx, "CAUGHT! — TAP TO RETRY", "the pool belongs to the people");
+    } else if (state.phase === "won") {
+      banner(ctx, "YOU MADE THE OTHER SIDE!", "the water stays public — tap to swim again");
+    } else if (state.finishX !== null) {
+      // Cheer on the home stretch.
+      ctx.fillStyle = "#FFD23F";
+      ctx.font = "bold 11px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("FINISH LINE AHEAD!", WIDTH / 2, 20);
+      ctx.textAlign = "left";
     }
   },
 };
@@ -368,6 +411,34 @@ function drawScene(ctx: CanvasRenderingContext2D, state: FormalPlungeState) {
   }
 }
 
+/* ---- finish line ----------------------------------------------------- */
+
+function drawFinish(ctx: CanvasRenderingContext2D, x: number, frame: number) {
+  const top = WATER_Y - 6;
+  const bottom = HEIGHT;
+  // Checkered pole across the pool.
+  const cell = 10;
+  const poleW = 14;
+  for (let cy = top, row = 0; cy < bottom; cy += cell, row++) {
+    for (let cx = 0; cx < poleW; cx += cell) {
+      ctx.fillStyle = (row + cx / cell) % 2 === 0 ? "#000000" : "#ffffff";
+      ctx.fillRect(Math.round(x - poleW / 2 + cx), Math.round(cy), cell, cell);
+    }
+  }
+  // Floating "FINISH" banner above the water, bobbing gently.
+  const by = top - 26 + Math.sin(frame / 12) * 2;
+  const bw = 74;
+  ctx.fillStyle = "#000";
+  ctx.fillRect(Math.round(x - bw / 2) - 2, Math.round(by) - 2, bw + 4, 20);
+  ctx.fillStyle = "#FFA500";
+  ctx.fillRect(Math.round(x - bw / 2), Math.round(by), bw, 16);
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 11px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("FINISH", x, by + 12);
+  ctx.textAlign = "left";
+}
+
 /* ---- billionaire sprites -------------------------------------------- */
 
 function drawBillionaire(
@@ -375,7 +446,7 @@ function drawBillionaire(
   o: PlungeObstacle,
   frame: number,
 ) {
-  const f = (Math.floor(frame / 8) + Math.floor(o.seed)) % 4;
+  const f = (Math.floor(frame / 9) + Math.floor(o.seed)) % BILL_FRAMES[o.kind];
   const img = billSprite(o.kind, f);
   const cy = billY(o, frame);
   if (!img) {
@@ -410,7 +481,8 @@ type Pose =
   | "swim2"
   | "swim3"
   | "swim4"
-  | "lose";
+  | "lose"
+  | "win";
 
 // All frames share the same source frame (a common union crop), so a single
 // on-canvas height keeps the character anchored consistently between poses.
@@ -425,6 +497,7 @@ const MAMDANI_FILE: Record<Pose, string> = {
   swim3: "Swim03",
   swim4: "Swim04",
   lose: "lose",
+  win: "Win",
 };
 // Poses that read in/entering the water render bigger; the on-board poses
 // (which fill the full frame) render smaller so they don't clip the top.
@@ -436,6 +509,7 @@ const BIG_POSES = new Set<Pose>([
   "swim3",
   "swim4",
   "lose",
+  "win",
 ]);
 const FRAME_H_WATER = 100;
 const FRAME_H_BOARD = 74;
@@ -523,6 +597,6 @@ export function preloadFormalPlunge(): void {
     ),
   );
   KINDS.forEach((kind) => {
-    for (let f = 0; f < 4; f++) billSprite(kind, f);
+    for (let f = 0; f < BILL_FRAMES[kind]; f++) billSprite(kind, f);
   });
 }

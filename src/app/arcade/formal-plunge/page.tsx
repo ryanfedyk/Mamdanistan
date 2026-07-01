@@ -67,6 +67,7 @@ export default function FormalPlungePage() {
             <li>▲▼ Hold UP / DOWN (or ↑ / ↓ / W / S) to glide and dodge.</li>
             <li>🚀 Duck the rocket-suit bros, robber barons, cash-divers…</li>
             <li>🦢 …and the swan-float tycoons crashing the public pool.</li>
+            <li>🏁 Reach the finish line at the far end to win the lap.</li>
             <li>
               🤖 Their data centers are drinking the pool dry — every lap you
               swim is water the AI didn&apos;t guzzle.

@@ -6,9 +6,11 @@ import { formalPlunge, FORMAL_PLUNGE_DIMENSIONS } from "@/games/formalPlunge";
 import { getCabinet } from "@/data/games";
 
 const KEY_MAP: Record<string, string> = {
-  Space: "flap",
-  ArrowUp: "flap",
-  KeyW: "flap",
+  ArrowUp: "up",
+  KeyW: "up",
+  ArrowDown: "down",
+  KeyS: "down",
+  Space: "start",
   Enter: "start",
 };
 
@@ -39,7 +41,7 @@ export default function FormalPlungePage() {
           width={FORMAL_PLUNGE_DIMENSIONS.width}
           height={FORMAL_PLUNGE_DIMENSIONS.height}
           keyMap={KEY_MAP}
-          controls="flap"
+          controls="updown"
           accentColor="#3DDC97"
         />
 
@@ -48,14 +50,14 @@ export default function FormalPlungePage() {
             Mission Brief
           </h2>
           <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
-            <li>🤿 TAP to dive off the board — the plunge is automatic.</li>
-            <li>🏊 In the water, TAP (or FLAP / SPACE / ↑) to stroke upward.</li>
-            <li>📋 Dodge the bureaucrats — permits, zoning, red tape.</li>
-            <li>😠 Dodge the naysayers — &ldquo;NO!&rdquo;, &ldquo;CAN&apos;T!&rdquo;, &ldquo;TAXES?!&rdquo;</li>
-            <li>🏅 Every foe you slip past banks a lap. The suit stays on.</li>
+            <li>🤿 TAP (or the KICK OFF button) to dive off the board.</li>
+            <li>🏊 Zohran swims on his own — you just steer.</li>
+            <li>▲▼ Press UP / DOWN (or ↑ / ↓ / W / S) to glide and dodge.</li>
+            <li>🚀 Duck the rocket-suit bros, robber barons, cash-divers…</li>
+            <li>🦢 …and the swan-float tycoons crashing the public pool.</li>
           </ul>
           <p className="font-terminal text-base text-mamdani-fog/70">
-            The pool gets busier the longer you swim. Keep your form.
+            One touch and they drag you under. The pool belongs to the people.
           </p>
         </aside>
       </div>

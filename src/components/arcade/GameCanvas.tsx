@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { BaseGameState, GameEngine } from "@/lib/types";
 
 type KeyMap = Record<string, string>;
-type ControlScheme = "flap" | "dpad" | "shooter" | "tap";
+type ControlScheme = "flap" | "dpad" | "shooter" | "tap" | "updown";
 
 /**
  * Generic arcade canvas host. Owns the requestAnimationFrame loop, the
@@ -100,11 +100,16 @@ export function GameCanvas<TState extends BaseGameState>({
           width={width}
           height={height}
           onPointerDown={
-            controls === "flap" || controls === "tap"
+            controls === "flap" || controls === "tap" || controls === "updown"
               ? (e) => {
                   e.preventDefault();
                   if (controls === "flap") {
                     send("flap");
+                    return;
+                  }
+                  if (controls === "updown") {
+                    // Tap the pool to kick off the dive.
+                    send("start");
                     return;
                   }
                   const el = canvasRef.current;
@@ -126,6 +131,12 @@ export function GameCanvas<TState extends BaseGameState>({
         <FlapControls onFlap={() => send("flap")} />
       ) : controls === "shooter" ? (
         <ShooterControls onMove={send} />
+      ) : controls === "updown" ? (
+        <UpDownControls
+          onMove={send}
+          onStart={() => send("start")}
+          playing={hud.phase === "playing"}
+        />
       ) : controls === "tap" ? (
         <p className="text-center font-pixel text-[9px] uppercase text-mamdani-fog">
           ☝ Tap the potholes
@@ -139,6 +150,42 @@ export function GameCanvas<TState extends BaseGameState>({
         <ArcadeBtn label="▶ Insert Coin" onPress={() => send("start")} primary />
         <ArcadeBtn label="↺ Reset" onPress={() => send("reset")} />
       </div>
+    </div>
+  );
+}
+
+/** Two big UP / DOWN paddles for the swim-and-dodge cabinet. Before the run
+ *  starts it collapses to a single KICK OFF button. */
+function UpDownControls({
+  onMove,
+  onStart,
+  playing,
+}: {
+  onMove: (intent: string) => void;
+  onStart: () => void;
+  playing: boolean;
+}) {
+  if (!playing) {
+    return (
+      <button
+        {...pressHandlers(onStart)}
+        aria-label="Kick off"
+        className="h-16 w-full touch-none rounded-md border-2 border-black bg-mamdani-mint font-pixel text-sm uppercase text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
+      >
+        🤿 Kick Off
+      </button>
+    );
+  }
+  const pad =
+    "flex h-16 flex-1 touch-none items-center justify-center rounded-md border-2 border-black bg-mamdani-steel font-pixel text-xl text-mamdani-gold shadow-pixel active:translate-y-[3px] active:shadow-none";
+  return (
+    <div className="flex gap-2">
+      <button {...pressHandlers(() => onMove("up"))} aria-label="Swim up" className={pad}>
+        ▲
+      </button>
+      <button {...pressHandlers(() => onMove("down"))} aria-label="Swim down" className={pad}>
+        ▼
+      </button>
     </div>
   );
 }

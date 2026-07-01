@@ -8,11 +8,12 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
   {
     id: "formal-plunge",
     title: "Formal Plunge",
-    blurb: "Suit up. Dive in. Out-swim the red tape.",
+    blurb: "Suit up. Dive in. Dodge the billionaires.",
     howToPlay:
-      "Tap to send Zohran off the high board, then tap (or FLAP / SPACE) to " +
-      "stroke through the water. Dodge the bureaucrats and their permits and " +
-      "the naysayers and their booing — every foe you slip past banks a lap.",
+      "Tap to launch Zohran off the high board. He swims the lap on his own — " +
+      "you press UP / DOWN (or ↑ ↓ / W S) to glide and dodge the billionaires " +
+      "crashing the public pool: rocket-suit bros, robber barons, cash-divers, " +
+      "and swan-float tycoons. One touch drags you under.",
     accent: "mamdani-mint",
     glyph: "🏊",
     status: "playable",

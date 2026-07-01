@@ -1,52 +1,61 @@
-import type { FormalPlungeState, GameEngine, PlungeObstacle } from "@/lib/types";
+import type {
+  BillionaireKind,
+  FormalPlungeState,
+  GameEngine,
+  PlungeObstacle,
+} from "@/lib/types";
 
 /**
- * "FORMAL PLUNGE" — Zohran suits up, dives off the high board, and swims
- * the length of the pool dodging bureaucrats and naysayers.
+ * "FORMAL PLUNGE" — Zohran dives into the public pool and swims a lap while
+ * a parade of billionaires crashes it. Zohran swims forward automatically;
+ * the player only steers UP / DOWN to dodge the oncoming plutocrats.
  *
- * Two beats inside a run:
- *   1. DIVE  — a short scripted plunge (prep → leap → arch → entry → splash).
- *   2. SWIM  — a buoyancy loop: tap to stroke upward, sink under gravity,
- *              thread the incoming gauntlet of red tape and hecklers.
+ *   1. KICK OFF — tap / press to launch off the board (a scripted dive).
+ *   2. SWIM     — the pool scrolls by on its own. Press ▲ / ▼ to glide up
+ *                 and down (with momentum) and thread past the billionaires.
  *
- * All motion is plain data; render reads state and never mutates it. The
- * character is drawn from the extracted Zohran sprite atlas in /public.
+ * All motion is plain data; render reads state and never mutates it.
  */
 
 const WIDTH = 480;
 const HEIGHT = 320;
-const WATER_Y = 104; // surface line
-const FLOOR_Y = HEIGHT - 10; // pool bottom
-const SWIM_X = 116; // Zohran's fixed horizontal lane
-const SINK = 0.3; // downward accel per frame (buoyant, gentle)
-const STROKE = -5.4; // upward impulse per stroke
-const BASE_SCROLL = 2.4; // world speed at score 0
-const DIVE_FRAMES = 58; // length of the scripted dive
+const WATER_Y = 92; // surface line
+const FLOOR_Y = HEIGHT - 12; // pool bottom
+const SWIM_X = 98; // Zohran's fixed horizontal lane
+const IMPULSE = 2.5; // vertical kick added per ▲/▼ press
+const MAXV = 6.2; // vertical speed cap
+const FRICTION = 0.86; // glide damping
+const BASE_SCROLL = 2.6; // world speed at score 0
+const DIVE_FRAMES = 54;
 
-const BUREAUCRAT_TAUNTS = [
-  "FORM B-7",
-  "PERMIT",
-  "ZONING",
-  "ENV. REVIEW",
-  "COMM. BOARD",
-  "HEARING",
-];
-const NAYSAYER_TAUNTS = ["NO!", "CAN'T!", "TAXES?!", "UNSERIOUS", "IMPOSSIBLE", "RADICAL!"];
+const KINDS: BillionaireKind[] = ["elon", "baron", "snorkeler", "swan"];
+// On-canvas height + width per billionaire (from sprite aspect ratios).
+const BILL_H: Record<BillionaireKind, number> = {
+  elon: 56,
+  baron: 84,
+  snorkeler: 50,
+  swan: 74,
+};
+const BILL_ASPECT: Record<BillionaireKind, number> = {
+  elon: 1.68,
+  baron: 0.74,
+  snorkeler: 2.24,
+  swan: 1.09,
+};
 
-/** Cheap deterministic hash so spawns are reproducible per frame. */
 function rand(seed: number): number {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
 }
 
-function spawnFoe(seed: number): PlungeObstacle {
-  const kind = rand(seed) < 0.5 ? "bureaucrat" : "naysayer";
-  const top = WATER_Y + 24;
-  const bottom = FLOOR_Y - 16;
-  const y = top + rand(seed * 1.7 + 9) * (bottom - top - 40);
-  const pool = kind === "bureaucrat" ? BUREAUCRAT_TAUNTS : NAYSAYER_TAUNTS;
-  const label = pool[Math.floor(rand(seed * 2.3 + 4) * pool.length)];
-  return { x: WIDTH + 30, y, width: 38, height: 40, label, kind };
+function spawnBillionaire(seed: number): PlungeObstacle {
+  const kind = KINDS[Math.floor(rand(seed) * KINDS.length) % KINDS.length];
+  const h = BILL_H[kind];
+  const w = h * BILL_ASPECT[kind];
+  const top = WATER_Y + 6 + h / 2;
+  const bottom = FLOOR_Y - 6 - h / 2;
+  const y = top + rand(seed * 1.7 + 9) * Math.max(1, bottom - top);
+  return { x: WIDTH + w / 2 + 8, y, width: w, height: h, kind, seed };
 }
 
 function freshState(phase: FormalPlungeState["phase"]): FormalPlungeState {
@@ -72,12 +81,32 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
   handleInput(state, intent) {
     if (intent === "reset") return freshState("attract");
 
-    if (intent === "start" || intent === "flap" || intent === "up") {
-      // From the board (attract / gameover) any input launches the dive.
-      if (state.phase !== "playing") return freshState("playing");
-      // Mid-swim, a stroke kicks Zohran upward. Dives are hands-free.
-      if (state.mode === "swim") {
-        return { ...state, diver: { ...state.diver, vy: STROKE } };
+    // From the board (attract / gameover) any input kicks off the dive.
+    if (state.phase !== "playing") {
+      if (
+        intent === "start" ||
+        intent === "up" ||
+        intent === "down" ||
+        intent === "flap"
+      ) {
+        return freshState("playing");
+      }
+      return state;
+    }
+
+    // Mid-swim: ▲ / ▼ nudge Zohran with momentum. The dive is hands-free.
+    if (state.mode === "swim") {
+      if (intent === "up") {
+        return {
+          ...state,
+          diver: { ...state.diver, vy: Math.max(-MAXV, state.diver.vy - IMPULSE) },
+        };
+      }
+      if (intent === "down") {
+        return {
+          ...state,
+          diver: { ...state.diver, vy: Math.min(MAXV, state.diver.vy + IMPULSE) },
+        };
       }
     }
     return state;
@@ -87,74 +116,70 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     if (state.phase !== "playing") return state;
     const frame = state.frame + 1;
 
-    // ---- Scripted dive: follow a leaping arc into the water ----
+    // ---- Scripted dive into the water ----
     if (state.mode === "dive") {
       const diveT = state.diveT + 1;
       const t = Math.min(diveT / DIVE_FRAMES, 1);
       const x = 58 + (SWIM_X - 58) * t;
-      const baseY = 44 + (WATER_Y + 34 - 44) * t;
-      const y = baseY - 24 * Math.sin(Math.PI * t); // hop up, then plunge
-
+      const baseY = 44 + (WATER_Y + 40 - 44) * t;
+      const y = baseY - 24 * Math.sin(Math.PI * t);
       if (diveT >= DIVE_FRAMES) {
-        // Enter the water and seed the first foes.
         return {
           ...state,
           frame,
           mode: "swim",
           diveT,
-          diver: { x: SWIM_X, y: WATER_Y + 44, vy: 0 },
-          obstacles: [spawnFoe(31), spawnFoe(77)],
-          nextSpawn: frame + 42,
+          diver: { x: SWIM_X, y: WATER_Y + 60, vy: 0 },
+          obstacles: [spawnBillionaire(41)],
+          nextSpawn: frame + 48,
         };
       }
       return { ...state, frame, diveT, diver: { x, y, vy: 0 } };
     }
 
-    // ---- Swim loop: buoyancy + scrolling gauntlet ----
-    let vy = state.diver.vy + SINK;
+    // ---- Swim loop: auto-forward, steer to dodge ----
+    let vy = state.diver.vy * FRICTION;
     let y = state.diver.y + vy;
-    if (y < WATER_Y + 6) {
-      y = WATER_Y + 6;
+    if (y < WATER_Y + 10) {
+      y = WATER_Y + 10;
       vy = 0;
-    } else if (y > FLOOR_Y - 6) {
-      y = FLOOR_Y - 6;
+    } else if (y > FLOOR_Y - 10) {
+      y = FLOOR_Y - 10;
       vy = 0;
     }
     const x = state.diver.x;
 
-    const scroll = BASE_SCROLL + Math.min(state.score * 0.02, 2.4);
+    const scroll = BASE_SCROLL + Math.min(state.score * 0.01, 2.6);
     let score = state.score;
 
-    // Scroll foes; anything off the left edge was successfully dodged.
+    // Scroll billionaires; anything off the left was dodged.
     const kept: PlungeObstacle[] = [];
     for (const o of state.obstacles) {
       const moved = { ...o, x: o.x - scroll };
-      if (moved.x + moved.width < -4) {
-        score += 5;
-      } else {
-        kept.push(moved);
-      }
+      if (moved.x + moved.width / 2 < -4) score += 10;
+      else kept.push(moved);
     }
 
-    const poolsUnlocked = Math.floor(score / 50);
+    const poolsUnlocked = Math.floor(score / 100);
 
-    // Spawn on a shrinking cadence as laps climb.
     let nextSpawn = state.nextSpawn;
     if (frame >= nextSpawn) {
-      kept.push(spawnFoe(frame));
-      const gap = Math.max(44, 84 - poolsUnlocked * 5);
+      kept.push(spawnBillionaire(frame));
+      const gap = Math.max(40, 84 - poolsUnlocked * 5);
       nextSpawn = frame + gap;
     }
 
-    // Collision → caught. Hitbox is a forgiving core around the torso.
-    const hw = 13;
-    const hh = 10;
+    // Collision → caught. Hitboxes are shrunk toward each sprite's core.
+    const zHW = 15;
+    const zHH = 9;
     for (const o of kept) {
+      const ehw = (o.width * 0.62) / 2;
+      const ehh = (o.height * 0.6) / 2;
       if (
-        x + hw > o.x &&
-        x - hw < o.x + o.width &&
-        y + hh > o.y &&
-        y - hh < o.y + o.height
+        x + zHW > o.x - ehw &&
+        x - zHW < o.x + ehw &&
+        y + zHH > o.y - ehh &&
+        y - zHH < o.y + ehh
       ) {
         return {
           ...state,
@@ -183,10 +208,8 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
   render(ctx, state) {
     drawScene(ctx, state.frame);
 
-    // Foes.
-    for (const o of state.obstacles) drawFoe(ctx, o, state.frame);
+    for (const o of state.obstacles) drawBillionaire(ctx, o, state.frame);
 
-    // Zohran.
     const d = state.diver;
     if (state.mode === "dive" || state.phase === "attract") {
       drawZohran(ctx, diveFrameName(state), d.x, d.y);
@@ -205,9 +228,9 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     ctx.fillText(`LAPS ${state.poolsUnlocked}`, 10, 32);
 
     if (state.phase === "attract") {
-      banner(ctx, "TAP TO DIVE IN");
+      banner(ctx, "TAP TO KICK OFF", "▲▼ to dodge the billionaires");
     } else if (state.phase === "gameover") {
-      banner(ctx, "CAUGHT! — TAP TO RETRY");
+      banner(ctx, "CAUGHT! — TAP TO RETRY", "the pool belongs to the people");
     }
   },
 };
@@ -225,21 +248,18 @@ function diveFrameName(state: FormalPlungeState): SpriteName {
 }
 
 function drawScene(ctx: CanvasRenderingContext2D, frame: number) {
-  // Sky / natatorium above the waterline.
   const sky = ctx.createLinearGradient(0, 0, 0, WATER_Y);
   sky.addColorStop(0, "#0B0E1A");
   sky.addColorStop(1, "#123047");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, WIDTH, WATER_Y);
 
-  // Water body.
   const water = ctx.createLinearGradient(0, WATER_Y, 0, HEIGHT);
   water.addColorStop(0, "#1f7fa8");
   water.addColorStop(1, "#0a2a3a");
   ctx.fillStyle = water;
   ctx.fillRect(0, WATER_Y, WIDTH, HEIGHT - WATER_Y);
 
-  // Waterline shimmer.
   ctx.fillStyle = "rgba(126,224,255,0.55)";
   ctx.fillRect(0, WATER_Y - 2, WIDTH, 3);
   ctx.fillStyle = "rgba(255,255,255,0.10)";
@@ -256,7 +276,7 @@ function drawScene(ctx: CanvasRenderingContext2D, frame: number) {
   ctx.fillStyle = "#7a4a12";
   ctx.fillRect(10, 68, 6, WATER_Y - 68);
 
-  // Rising bubbles for a little underwater life.
+  // Rising bubbles.
   ctx.fillStyle = "rgba(255,255,255,0.20)";
   const span = FLOOR_Y - WATER_Y - 12;
   for (let b = 0; b < 9; b++) {
@@ -268,36 +288,42 @@ function drawScene(ctx: CanvasRenderingContext2D, frame: number) {
     ctx.fill();
   }
 
-  // Pool floor.
   ctx.fillStyle = "#061c27";
   ctx.fillRect(0, FLOOR_Y, WIDTH, HEIGHT - FLOOR_Y);
 }
 
-function drawFoe(ctx: CanvasRenderingContext2D, o: PlungeObstacle, frame: number) {
-  const bob = Math.sin((frame + o.x) / 12) * 3;
-  const y = o.y + bob;
-  const naysayer = o.kind === "naysayer";
-  const body = naysayer ? "#A855F7" : "#FF2E4D";
+/* ---- billionaire sprites -------------------------------------------- */
 
-  // Card body with hard black border (brutalist).
-  ctx.fillStyle = "#000";
-  ctx.fillRect(o.x - 2, y - 2, o.width + 4, o.height + 4);
-  ctx.fillStyle = body;
-  ctx.fillRect(o.x, y, o.width, o.height);
-
-  // Emoji face.
-  ctx.font = "18px serif";
-  ctx.textAlign = "center";
-  ctx.fillText(naysayer ? "😠" : "📋", o.x + o.width / 2, y + 20);
-
-  // Taunt label.
-  ctx.fillStyle = naysayer ? "#0B0E1A" : "#FFFFFF";
-  ctx.font = "bold 7px monospace";
-  ctx.fillText(o.label, o.x + o.width / 2, y + o.height - 5);
-  ctx.textAlign = "left";
+function drawBillionaire(
+  ctx: CanvasRenderingContext2D,
+  o: PlungeObstacle,
+  frame: number,
+) {
+  const f = (Math.floor(frame / 8) + Math.floor(o.seed)) % 4;
+  const img = billSprite(o.kind, f);
+  const bob = Math.sin((frame + o.seed * 20) / 14) * 2.5;
+  const cy = o.y + bob;
+  if (!img) {
+    ctx.fillStyle = "#c9a227";
+    ctx.fillRect(o.x - o.width / 2, cy - o.height / 2, o.width, o.height);
+    return;
+  }
+  // Flip horizontally so the swimmers face their direction of travel (left).
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.translate(Math.round(o.x), Math.round(cy));
+  ctx.scale(-1, 1);
+  ctx.drawImage(
+    img,
+    Math.round(-o.width / 2),
+    Math.round(-o.height / 2),
+    Math.round(o.width),
+    Math.round(o.height),
+  );
+  ctx.restore();
 }
 
-/* ---- sprite atlas ---------------------------------------------------- */
+/* ---- Zohran sprite atlas -------------------------------------------- */
 
 type SpriteName =
   | "prep"
@@ -324,7 +350,6 @@ const SPRITE_FILE: Record<SpriteName, string> = {
   rotate: "swim4-rotate",
 };
 
-// Target on-canvas heights so every pose reads at a consistent scale.
 const SPRITE_H: Record<SpriteName, number> = {
   prep: 64,
   leap: 58,
@@ -338,17 +363,23 @@ const SPRITE_H: Record<SpriteName, number> = {
   rotate: 40,
 };
 
-const imgCache: Partial<Record<SpriteName, HTMLImageElement>> = {};
+const zCache: Partial<Record<SpriteName, HTMLImageElement>> = {};
+const bCache: Partial<Record<string, HTMLImageElement>> = {};
 
-function sprite(name: SpriteName): HTMLImageElement | null {
+function loadImg(cache: Record<string, HTMLImageElement>, key: string, src: string) {
   if (typeof window === "undefined") return null;
-  let img = imgCache[name];
+  let img = cache[key];
   if (!img) {
     img = new window.Image();
-    img.src = `/sprites/zohran/${SPRITE_FILE[name]}.webp`;
-    imgCache[name] = img;
+    img.src = src;
+    cache[key] = img;
   }
   return img.complete && img.naturalWidth > 0 ? img : null;
+}
+
+function billSprite(kind: BillionaireKind, frame: number): HTMLImageElement | null {
+  const key = `${kind}-${frame + 1}`;
+  return loadImg(bCache as Record<string, HTMLImageElement>, key, `/sprites/billionaires/${key}.webp`);
 }
 
 function drawZohran(
@@ -357,9 +388,12 @@ function drawZohran(
   cx: number,
   cy: number,
 ) {
-  const img = sprite(name);
+  const img = loadImg(
+    zCache as Record<string, HTMLImageElement>,
+    name,
+    `/sprites/zohran/${SPRITE_FILE[name]}.webp`,
+  );
   if (!img) {
-    // Fallback blazer block until the sprite decodes.
     ctx.fillStyle = "#161B2E";
     ctx.fillRect(cx - 9, cy - 12, 18, 24);
     ctx.fillStyle = "#7ee0ff";
@@ -372,13 +406,18 @@ function drawZohran(
   ctx.drawImage(img, Math.round(cx - w / 2), Math.round(cy - h / 2), Math.round(w), Math.round(h));
 }
 
-function banner(ctx: CanvasRenderingContext2D, text: string) {
+function banner(ctx: CanvasRenderingContext2D, text: string, sub?: string) {
   ctx.fillStyle = "rgba(11,14,26,0.72)";
-  ctx.fillRect(0, HEIGHT / 2 - 18, WIDTH, 36);
+  ctx.fillRect(0, HEIGHT / 2 - 24, WIDTH, sub ? 52 : 36);
   ctx.fillStyle = "#7ee0ff";
   ctx.font = "12px monospace";
   ctx.textAlign = "center";
-  ctx.fillText(text, WIDTH / 2, HEIGHT / 2 + 4);
+  ctx.fillText(text, WIDTH / 2, HEIGHT / 2 - 2);
+  if (sub) {
+    ctx.fillStyle = "#FFD23F";
+    ctx.font = "9px monospace";
+    ctx.fillText(sub, WIDTH / 2, HEIGHT / 2 + 16);
+  }
   ctx.textAlign = "left";
 }
 

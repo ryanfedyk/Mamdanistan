@@ -130,15 +130,19 @@ export interface BaseGameState {
 
 /* ---- "Formal Plunge" — suited physics diver --------------------------- */
 
+/** The pool-crashing billionaires Zohran has to dodge. */
+export type BillionaireKind = "elon" | "baron" | "snorkeler" | "swan";
+
 export interface PlungeObstacle {
+  /** Center position + full sprite box in canvas space. */
   x: number;
   y: number;
   width: number;
   height: number;
-  /** Taunt shown on the hazard, e.g. "FORM B-7" or "NO!". */
-  label: string;
-  /** Which foe this is — drives its look and taunt pool. */
-  kind?: "bureaucrat" | "naysayer";
+  /** Which billionaire this is — drives sprite + size. */
+  kind: BillionaireKind;
+  /** Per-enemy phase seed for animation + vertical bob. */
+  seed: number;
 }
 
 export interface FormalPlungeState extends BaseGameState {

@@ -19,6 +19,7 @@ export function GameCanvas<TState extends BaseGameState>({
   keyMap,
   controls,
   accentColor = "#21D4FD",
+  fluid = false,
 }: {
   engine: GameEngine<TState>;
   width: number;
@@ -27,6 +28,9 @@ export function GameCanvas<TState extends BaseGameState>({
   /** Which touch-control layout to render under the canvas. */
   controls: ControlScheme;
   accentColor?: string;
+  /** Let the canvas span the full container width (crisp pixel upscaling),
+   *  keeping the HUD + controls centered at a readable width. */
+  fluid?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<TState>(engine.init());
@@ -93,7 +97,7 @@ export function GameCanvas<TState extends BaseGameState>({
   };
 
   return (
-    <div className="no-touch-callout w-full max-w-md space-y-3">
+    <div className={`no-touch-callout w-full space-y-3 ${fluid ? "" : "max-w-md"}`}>
       {/* HUD readout */}
       <div className="flex items-center justify-between font-pixel text-[10px] uppercase">
         <span style={{ color: accentColor }}>SCORE {hud.score}</span>
@@ -134,33 +138,38 @@ export function GameCanvas<TState extends BaseGameState>({
               : undefined
           }
           className={`block w-full touch-none rounded-sm ${controls === "tap" ? "cursor-pointer" : ""}`}
-          style={{ aspectRatio: `${width} / ${height}` }}
+          style={{
+            aspectRatio: `${width} / ${height}`,
+            imageRendering: fluid ? "pixelated" : undefined,
+          }}
         />
       </div>
 
-      {/* Touch controls */}
-      {controls === "flap" ? (
-        <FlapControls onFlap={() => send("flap")} />
-      ) : controls === "shooter" ? (
-        <ShooterControls onMove={send} />
-      ) : controls === "updown" ? (
-        <UpDownControls
-          onMove={send}
-          onStart={() => send("start")}
-          playing={hud.phase === "playing"}
-        />
-      ) : controls === "tap" ? (
-        <p className="text-center font-pixel text-[9px] uppercase text-mamdani-fog">
-          ☝ Tap the potholes
-        </p>
-      ) : (
-        <DPad onMove={send} />
-      )}
+      {/* Touch controls + coin slot — kept at a readable width when fluid. */}
+      <div className={`space-y-3 ${fluid ? "mx-auto w-full max-w-md" : ""}`}>
+        {controls === "flap" ? (
+          <FlapControls onFlap={() => send("flap")} />
+        ) : controls === "shooter" ? (
+          <ShooterControls onMove={send} />
+        ) : controls === "updown" ? (
+          <UpDownControls
+            onMove={send}
+            onStart={() => send("start")}
+            playing={hud.phase === "playing"}
+          />
+        ) : controls === "tap" ? (
+          <p className="text-center font-pixel text-[9px] uppercase text-mamdani-fog">
+            ☝ Tap the potholes
+          </p>
+        ) : (
+          <DPad onMove={send} />
+        )}
 
-      {/* Coin slot */}
-      <div className="flex gap-2">
-        <ArcadeBtn label="▶ Insert Coin" onPress={() => send("start")} primary />
-        <ArcadeBtn label="↺ Reset" onPress={() => send("reset")} />
+        {/* Coin slot */}
+        <div className="flex gap-2">
+          <ArcadeBtn label="▶ Insert Coin" onPress={() => send("start")} primary />
+          <ArcadeBtn label="↺ Reset" onPress={() => send("reset")} />
+        </div>
       </div>
     </div>
   );

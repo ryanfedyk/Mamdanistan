@@ -93,11 +93,16 @@ const config: Config = {
           "0%": { width: "0%" },
           "100%": { width: "var(--bar-fill, 100%)" },
         },
+        "trend-draw": {
+          from: { strokeDashoffset: "30" },
+          to: { strokeDashoffset: "0" },
+        },
       },
       animation: {
         blink: "blink 1s steps(1) infinite",
         "press-start": "press-start 1.4s ease-in-out infinite",
         "fill-up": "fill-up 1.2s ease-out forwards",
+        "trend-draw": "trend-draw 0.9s ease-out 0.15s both",
       },
     },
   },

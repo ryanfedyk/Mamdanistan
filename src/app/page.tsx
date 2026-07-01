@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/Button";
-import { StatusBanner } from "@/components/ui/StatusBanner";
+import { BureaucracyMeter } from "@/components/ui/BureaucracyMeter";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { MAP_PINS, CATEGORY_COLORS, CATEGORY_GLYPHS } from "@/data/pins";
 import { ARCADE_CABINETS } from "@/data/games";
@@ -12,7 +12,7 @@ export default function HomePage() {
       <section className="border-b-4 border-outline bg-secondary py-14 sm:py-20">
         <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-8 px-4 md:px-12 lg:grid-cols-12">
           <div className="space-y-7 lg:col-span-6">
-            <StatusBanner text="BUREAUCRACY LEVEL: DEFEATED" tone="neutral" />
+            <BureaucracyMeter />
             <h1 className="brutal-heading text-5xl leading-[0.9] text-primary sm:text-7xl">
               Citizens of{" "}
               <span className="bg-primary px-2 italic text-white">

@@ -104,8 +104,13 @@ export interface ArcadeCabinet {
   howToPlay: string;
   /** Tailwind accent color token, e.g. "mamdani-cyan". */
   accent: string;
-  /** Emoji/pixel marquee glyph until real sprites land. */
+  /** Emoji/pixel marquee glyph — the fallback when no hero art exists. */
   glyph: string;
+  /** Wide marquee/hero art (webp). Used as the game's icon everywhere it's
+   *  linked from; falls back to `glyph` when absent. */
+  hero?: string;
+  /** Smaller webp for compact tiles and icons. */
+  heroThumb?: string;
   /** Ships a playable loop yet? */
   status: "playable" | "stub";
 }

@@ -184,12 +184,21 @@ export default function HomePage() {
                 href={`/arcade/${cab.id}`}
                 className="brutal-card group flex items-center gap-4 p-6 transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none"
               >
-                <span
-                  className="grid h-14 w-14 shrink-0 place-items-center border-4 border-outline bg-primary text-3xl"
-                  aria-hidden
-                >
-                  {cab.glyph}
-                </span>
+                {cab.hero ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={cab.heroThumb ?? cab.hero}
+                    alt=""
+                    className="h-14 w-14 shrink-0 border-4 border-outline object-cover [image-rendering:pixelated]"
+                  />
+                ) : (
+                  <span
+                    className="grid h-14 w-14 shrink-0 place-items-center border-4 border-outline bg-primary text-3xl"
+                    aria-hidden
+                  >
+                    {cab.glyph}
+                  </span>
+                )}
                 <div>
                   <h3 className="brutal-heading text-xl text-black">
                     {cab.title}

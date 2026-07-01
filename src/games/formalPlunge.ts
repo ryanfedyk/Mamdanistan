@@ -97,7 +97,7 @@ function freshState(phase: FormalPlungeState["phase"]): FormalPlungeState {
     frame: 0,
     mode: "dive",
     diveT: 0,
-    diver: { x: 58, y: 44, vy: 0 },
+    diver: { x: 66, y: 50, vy: 0 },
     obstacles: [],
     nextSpawn: 0,
     poolsUnlocked: 0,
@@ -140,16 +140,20 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     return state;
   },
 
-  update(state) {
+  update(state, deltaMs) {
     if (state.phase !== "playing") return state;
-    const frame = state.frame + 1;
+    // Advance by real elapsed time (in 60fps-frame units) so the game runs at
+    // the same speed on 60Hz, 120Hz, or variable-refresh displays. Capped so a
+    // stall / backgrounded tab can't teleport everything on the next frame.
+    const dt = Math.min(deltaMs / (1000 / 60), 3);
+    const frame = state.frame + dt;
 
     // ---- Scripted dive into the water ----
     if (state.mode === "dive") {
-      const diveT = state.diveT + 1;
+      const diveT = state.diveT + dt;
       const t = Math.min(diveT / DIVE_FRAMES, 1);
-      const x = 58 + (SWIM_X - 58) * t;
-      const baseY = 44 + (WATER_Y + 40 - 44) * t;
+      const x = 66 + (SWIM_X - 66) * t;
+      const baseY = 50 + (WATER_Y + 40 - 50) * t;
       const y = baseY - 24 * Math.sin(Math.PI * t);
       if (diveT >= DIVE_FRAMES) {
         return {
@@ -167,7 +171,7 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
 
     // ---- Swim loop: auto-forward, steer to dodge ----
     const vy = state.diver.vy; // constant while ▲/▼ held, 0 when released
-    let y = state.diver.y + vy;
+    let y = state.diver.y + vy * dt;
     if (y < WATER_Y + 10) y = WATER_Y + 10;
     else if (y > FLOOR_Y - 10) y = FLOOR_Y - 10;
     const x = state.diver.x;
@@ -178,7 +182,7 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     // Scroll billionaires at their own pace; off the left = dodged.
     const kept: PlungeObstacle[] = [];
     for (const o of state.obstacles) {
-      const moved = { ...o, x: o.x - scroll * BILL_CFG[o.kind].speed };
+      const moved = { ...o, x: o.x - scroll * BILL_CFG[o.kind].speed * dt };
       if (moved.x + moved.width / 2 < -4) score += 10;
       else kept.push(moved);
     }
@@ -187,7 +191,7 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
 
     let nextSpawn = state.nextSpawn;
     if (frame >= nextSpawn) {
-      kept.push(spawnBillionaire(frame));
+      kept.push(spawnBillionaire(Math.floor(frame)));
       const gap = Math.max(58, 104 - poolsUnlocked * 5);
       nextSpawn = frame + gap;
     }
@@ -238,11 +242,9 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     if (state.mode === "dive" || state.phase === "attract") {
       drawZohran(ctx, diveFrameName(state), d.x, d.y);
     } else {
-      // Only the two clean, similarly-anchored strokes — recover/rotate read
-      // as dark blobs at this scale, so the cycle skips them.
-      const cycle = ["reach", "pull"] as const;
+      const cycle = ["swim1", "swim2", "swim3", "swim4"] as const;
       const name =
-        state.phase === "gameover" ? "reach" : cycle[Math.floor(state.frame / 9) % 2];
+        state.phase === "gameover" ? "lose" : cycle[Math.floor(state.frame / 7) % 4];
       drawZohran(ctx, name, d.x, d.y);
     }
 
@@ -263,7 +265,7 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
 
 /* ---------------------------------------------------------------- render */
 
-function diveFrameName(state: FormalPlungeState): SpriteName {
+function diveFrameName(state: FormalPlungeState): Pose {
   if (state.phase === "attract") return "prep";
   const t = state.diveT / DIVE_FRAMES;
   if (t < 0.14) return "prep";
@@ -348,47 +350,49 @@ function drawBillionaire(
   ctx.restore();
 }
 
-/* ---- Zohran sprite atlas -------------------------------------------- */
+/* ---- Mamdani sprite atlas ------------------------------------------- */
 
-type SpriteName =
+type Pose =
   | "prep"
   | "leap"
   | "arch"
   | "entry"
   | "splash"
-  | "glide"
-  | "reach"
-  | "pull"
-  | "recover"
-  | "rotate";
+  | "swim1"
+  | "swim2"
+  | "swim3"
+  | "swim4"
+  | "lose";
 
-const SPRITE_FILE: Record<SpriteName, string> = {
-  prep: "dive1-prep",
-  leap: "dive2-leap",
-  arch: "dive3-arch",
-  entry: "dive4-entry",
-  splash: "dive5-splash",
-  glide: "dive6-glide",
-  reach: "swim1-reach",
-  pull: "swim2-pull",
-  recover: "swim3-recover",
-  rotate: "swim4-rotate",
+// All frames share the same source frame (a common union crop), so a single
+// on-canvas height keeps the character anchored consistently between poses.
+const MAMDANI_FILE: Record<Pose, string> = {
+  prep: "Standing",
+  leap: "Jump01",
+  arch: "Dive02",
+  entry: "Dive04_EnterWater",
+  splash: "Dive03",
+  swim1: "Swim01",
+  swim2: "Swim02",
+  swim3: "Swim03",
+  swim4: "Swim04",
+  lose: "lose",
 };
+// Poses that read in/entering the water render bigger; the on-board poses
+// (which fill the full frame) render smaller so they don't clip the top.
+const BIG_POSES = new Set<Pose>([
+  "entry",
+  "splash",
+  "swim1",
+  "swim2",
+  "swim3",
+  "swim4",
+  "lose",
+]);
+const FRAME_H_WATER = 100;
+const FRAME_H_BOARD = 74;
 
-const SPRITE_H: Record<SpriteName, number> = {
-  prep: 64,
-  leap: 58,
-  arch: 40,
-  entry: 60,
-  splash: 56,
-  glide: 40,
-  reach: 40,
-  pull: 46,
-  recover: 46,
-  rotate: 40,
-};
-
-const zCache: Partial<Record<SpriteName, HTMLImageElement>> = {};
+const zCache: Partial<Record<Pose, HTMLImageElement>> = {};
 const bCache: Partial<Record<string, HTMLImageElement>> = {};
 
 function loadImg(cache: Record<string, HTMLImageElement>, key: string, src: string) {
@@ -409,14 +413,14 @@ function billSprite(kind: BillionaireKind, frame: number): HTMLImageElement | nu
 
 function drawZohran(
   ctx: CanvasRenderingContext2D,
-  name: SpriteName,
+  pose: Pose,
   cx: number,
   cy: number,
 ) {
   const img = loadImg(
     zCache as Record<string, HTMLImageElement>,
-    name,
-    `/sprites/zohran/${SPRITE_FILE[name]}.webp`,
+    pose,
+    `/sprites/mamdani/${MAMDANI_FILE[pose]}.webp`,
   );
   if (!img) {
     ctx.fillStyle = "#161B2E";
@@ -425,10 +429,16 @@ function drawZohran(
     ctx.fillRect(cx - 2, cy - 10, 4, 14);
     return;
   }
-  const h = SPRITE_H[name];
+  const h = BIG_POSES.has(pose) ? FRAME_H_WATER : FRAME_H_BOARD;
   const w = (img.naturalWidth / img.naturalHeight) * h;
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(img, Math.round(cx - w / 2), Math.round(cy - h / 2), Math.round(w), Math.round(h));
+  ctx.drawImage(
+    img,
+    Math.round(cx - w / 2),
+    Math.round(cy - h / 2),
+    Math.round(w),
+    Math.round(h),
+  );
 }
 
 function banner(ctx: CanvasRenderingContext2D, text: string, sub?: string) {

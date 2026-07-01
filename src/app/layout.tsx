@@ -86,12 +86,9 @@ function NavBar() {
 function Footer() {
   return (
     <footer className="flex flex-col items-center justify-between gap-6 border-t-4 border-outline bg-primary px-4 py-10 text-white shadow-[0_-6px_0_0_#000] md:flex-row md:px-12">
-      <div className="border-2 border-outline bg-secondary px-4 py-2 text-lg font-black uppercase text-on-secondary brutal-shadow-red">
-        Mamdani-stan Liberation Front
-      </div>
       <p className="max-w-[260px] text-center text-[10px] font-bold uppercase tracking-tighter opacity-80 md:text-right">
-        © 1974 Mamdani-stan Liberation Front. Property of the People. Satire.
-        Probably. <span className="animate-blink text-secondary">▮</span>
+        Property of the People. Satire. Probably.{" "}
+        <span className="animate-blink text-secondary">▮</span>
       </p>
     </footer>
   );

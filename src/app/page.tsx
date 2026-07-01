@@ -11,7 +11,7 @@ export default function HomePage() {
       {/* ---- HERO ---- */}
       <section className="border-b-4 border-outline bg-secondary py-14 sm:py-20">
         <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-8 px-4 md:px-12 lg:grid-cols-12">
-          <div className="space-y-7 lg:col-span-7">
+          <div className="space-y-7 lg:col-span-6">
             <StatusBanner text="BUREAUCRACY LEVEL: DEFEATED" tone="neutral" />
             <h1 className="brutal-heading text-5xl leading-[0.9] text-primary sm:text-7xl">
               Citizens of{" "}
@@ -41,7 +41,7 @@ export default function HomePage() {
           </div>
 
           {/* Hero postcard */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-6">
             <div className="rotate-2 border-4 border-outline bg-primary p-3 brutal-shadow-blue">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img

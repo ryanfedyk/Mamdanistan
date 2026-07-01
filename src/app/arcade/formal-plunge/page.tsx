@@ -48,13 +48,14 @@ export default function FormalPlungePage() {
             Mission Brief
           </h2>
           <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
-            <li>🤿 TAP the screen or the FLAP button (or SPACE / ↑).</li>
-            <li>🏊 Clear the red tape to bank pools.</li>
-            <li>👔 The suit is non-negotiable. It is formal.</li>
-            <li>⚠️ Touch the ceiling or floor and it&apos;s a belly flop.</li>
+            <li>🤿 TAP to dive off the board — the plunge is automatic.</li>
+            <li>🏊 In the water, TAP (or FLAP / SPACE / ↑) to stroke upward.</li>
+            <li>📋 Dodge the bureaucrats — permits, zoning, red tape.</li>
+            <li>😠 Dodge the naysayers — &ldquo;NO!&rdquo;, &ldquo;CAN&apos;T!&rdquo;, &ldquo;TAXES?!&rdquo;</li>
+            <li>🏅 Every foe you slip past banks a lap. The suit stays on.</li>
           </ul>
           <p className="font-terminal text-base text-mamdani-fog/70">
-            Prototype loop — physics, sprites, and a leaderboard land next.
+            The pool gets busier the longer you swim. Keep your form.
           </p>
         </aside>
       </div>

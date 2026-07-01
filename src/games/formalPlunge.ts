@@ -19,12 +19,18 @@ import type {
 
 const WIDTH = 480;
 const HEIGHT = 320;
-const WATER_Y = 92; // surface line
-const FLOOR_Y = HEIGHT - 12; // pool bottom
-const SWIM_X = 98; // Zohran's fixed horizontal lane
+const WATER_Y = 124; // surface line — matches the pool background
+const FLOOR_Y = HEIGHT - 8; // pool bottom
+const SWIM_X = 140; // Mamdani's fixed horizontal lane
 const MOVE_SPEED = 3.2; // vertical glide speed while ▲/▼ is held
 const BASE_SCROLL = 2.3; // world speed at score 0
-const DIVE_FRAMES = 54;
+const DIVE_FRAMES = 64;
+
+// Scripted dive path (canvas coords): spring off the board, arc up, plunge in.
+const DIVE_START_X = 92;
+const DIVE_START_Y = 57; // standing on the board (feet ≈ board surface)
+const DIVE_APEX_Y = 38; // top of the leap
+const DIVE_END_Y = WATER_Y + 58; // where he settles under the surface
 
 const KINDS: BillionaireKind[] = ["elon", "baron", "snorkeler", "swan"];
 // On-canvas height + width per billionaire (from sprite aspect ratios).
@@ -97,7 +103,7 @@ function freshState(phase: FormalPlungeState["phase"]): FormalPlungeState {
     frame: 0,
     mode: "dive",
     diveT: 0,
-    diver: { x: 66, y: 50, vy: 0 },
+    diver: { x: DIVE_START_X, y: DIVE_START_Y, vy: 0 },
     obstacles: [],
     nextSpawn: 0,
     poolsUnlocked: 0,
@@ -152,16 +158,22 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     if (state.mode === "dive") {
       const diveT = state.diveT + dt;
       const t = Math.min(diveT / DIVE_FRAMES, 1);
-      const x = 66 + (SWIM_X - 66) * t;
-      const baseY = 50 + (WATER_Y + 40 - 50) * t;
-      const y = baseY - 24 * Math.sin(Math.PI * t);
+      const x = DIVE_START_X + (SWIM_X - DIVE_START_X) * t;
+      // Spring up to the apex, then accelerate down into the pool.
+      let y: number;
+      if (t < 0.28) {
+        y = DIVE_START_Y + (DIVE_APEX_Y - DIVE_START_Y) * (t / 0.28);
+      } else {
+        const u = (t - 0.28) / 0.72;
+        y = DIVE_APEX_Y + (DIVE_END_Y - DIVE_APEX_Y) * u * u;
+      }
       if (diveT >= DIVE_FRAMES) {
         return {
           ...state,
           frame,
           mode: "swim",
           diveT,
-          diver: { x: SWIM_X, y: WATER_Y + 60, vy: 0 },
+          diver: { x: SWIM_X, y: DIVE_END_Y, vy: 0 },
           obstacles: [spawnBillionaire(41)],
           nextSpawn: frame + 48,
         };
@@ -268,56 +280,38 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
 function diveFrameName(state: FormalPlungeState): Pose {
   if (state.phase === "attract") return "prep";
   const t = state.diveT / DIVE_FRAMES;
-  if (t < 0.14) return "prep";
-  if (t < 0.34) return "leap";
-  if (t < 0.58) return "arch";
-  if (t < 0.82) return "entry";
-  return "splash";
+  if (t < 0.12) return "prep"; // still crouched on the board
+  // Pick the pose from where he actually is, so the water-entry frames only
+  // show once he's reached the surface (never half-submerged mid-air).
+  const y = state.diver.y;
+  if (y < WATER_Y - 4) return t < 0.45 ? "leap" : "arch"; // airborne
+  return y < WATER_Y + 26 ? "entry" : "splash"; // breaking / under the surface
 }
 
 function drawScene(ctx: CanvasRenderingContext2D, frame: number) {
-  const sky = ctx.createLinearGradient(0, 0, 0, WATER_Y);
-  sky.addColorStop(0, "#0B0E1A");
-  sky.addColorStop(1, "#123047");
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, WIDTH, WATER_Y);
-
-  const water = ctx.createLinearGradient(0, WATER_Y, 0, HEIGHT);
-  water.addColorStop(0, "#1f7fa8");
-  water.addColorStop(1, "#0a2a3a");
-  ctx.fillStyle = water;
-  ctx.fillRect(0, WATER_Y, WIDTH, HEIGHT - WATER_Y);
-
-  ctx.fillStyle = "rgba(126,224,255,0.55)";
-  ctx.fillRect(0, WATER_Y - 2, WIDTH, 3);
-  ctx.fillStyle = "rgba(255,255,255,0.10)";
-  for (let i = 0; i < WIDTH; i += 24) {
-    const w = 10 + ((i + frame) % 14);
-    ctx.fillRect((i + frame * 0.6) % WIDTH, WATER_Y + 2, w, 1);
+  // Pool background — scaled to fill the height, left-aligned so the diving
+  // board stays in frame; the right edge is cropped by the canvas.
+  const img = loadImg(bgCache as Record<string, HTMLImageElement>, "bg", "/games/swimming-bg.webp");
+  if (img) {
+    const w = (img.naturalWidth / img.naturalHeight) * HEIGHT;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, 0, Math.round(w), HEIGHT);
+  } else {
+    ctx.fillStyle = "#0a2a3a";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
   }
 
-  // Diving platform at the left.
-  ctx.fillStyle = "#FFA500";
-  ctx.fillRect(0, 60, 70, 8);
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 68, 70, 2);
-  ctx.fillStyle = "#7a4a12";
-  ctx.fillRect(10, 68, 6, WATER_Y - 68);
-
-  // Rising bubbles.
-  ctx.fillStyle = "rgba(255,255,255,0.20)";
-  const span = FLOOR_Y - WATER_Y - 12;
-  for (let b = 0; b < 9; b++) {
-    const bx = (b * 113 + frame * 0.4) % WIDTH;
-    const by = FLOOR_Y - ((frame * 0.9 + b * 47) % span);
-    const r = 1 + (b % 3);
+  // A few rising bubbles for a little underwater life over the still image.
+  ctx.fillStyle = "rgba(255,255,255,0.16)";
+  const span = FLOOR_Y - WATER_Y - 10;
+  for (let b = 0; b < 7; b++) {
+    const bx = (b * 131 + frame * 0.4) % WIDTH;
+    const by = FLOOR_Y - ((frame * 0.8 + b * 57) % span);
+    const r = 1 + (b % 2);
     ctx.beginPath();
     ctx.arc(bx, by, r, 0, Math.PI * 2);
     ctx.fill();
   }
-
-  ctx.fillStyle = "#061c27";
-  ctx.fillRect(0, FLOOR_Y, WIDTH, HEIGHT - FLOOR_Y);
 }
 
 /* ---- billionaire sprites -------------------------------------------- */
@@ -394,6 +388,7 @@ const FRAME_H_BOARD = 74;
 
 const zCache: Partial<Record<Pose, HTMLImageElement>> = {};
 const bCache: Partial<Record<string, HTMLImageElement>> = {};
+const bgCache: Partial<Record<string, HTMLImageElement>> = {};
 
 function loadImg(cache: Record<string, HTMLImageElement>, key: string, src: string) {
   if (typeof window === "undefined") return null;

@@ -43,6 +43,36 @@ const BILL_ASPECT: Record<BillionaireKind, number> = {
   swan: 1.09,
 };
 
+/**
+ * Per-billionaire behaviour so each one dodges differently:
+ * - speed:  horizontal pace as a multiple of the world scroll.
+ * - amp/freq: vertical weave (amplitude px / angular speed) — how much it
+ *   bobs or dives while crossing.
+ * - band:  the slice of the water column it spawns in [top..bottom fraction].
+ */
+const BILL_CFG: Record<
+  BillionaireKind,
+  { speed: number; amp: number; freq: number; band: [number, number] }
+> = {
+  // rocket-suit bro — darts across fast, near-flat.
+  elon: { speed: 1.7, amp: 5, freq: 0.16, band: [0.12, 0.85] },
+  // robber baron — slow, steady, rides low sipping his tea.
+  baron: { speed: 0.9, amp: 3, freq: 0.05, band: [0.42, 0.92] },
+  // cash-diver — medium pace but weaves hard up and down.
+  snorkeler: { speed: 1.12, amp: 40, freq: 0.055, band: [0.2, 0.78] },
+  // swan-float tycoon — big and slow, drifting along the surface.
+  swan: { speed: 0.66, amp: 11, freq: 0.03, band: [0.0, 0.32] },
+};
+
+/** A billionaire's live vertical center this frame (base + weave, clamped
+ *  inside the pool). Used by both collision and render so they agree. */
+function billY(o: PlungeObstacle, frame: number): number {
+  const c = BILL_CFG[o.kind];
+  const y = o.y + Math.sin((frame + o.seed * 40) * c.freq) * c.amp;
+  const half = o.height / 2;
+  return Math.max(WATER_Y + half + 4, Math.min(FLOOR_Y - half - 4, y));
+}
+
 function rand(seed: number): number {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
@@ -52,9 +82,12 @@ function spawnBillionaire(seed: number): PlungeObstacle {
   const kind = KINDS[Math.floor(rand(seed) * KINDS.length) % KINDS.length];
   const h = BILL_H[kind];
   const w = h * BILL_ASPECT[kind];
-  const top = WATER_Y + 6 + h / 2;
-  const bottom = FLOOR_Y - 6 - h / 2;
-  const y = top + rand(seed * 1.7 + 9) * Math.max(1, bottom - top);
+  const c = BILL_CFG[kind];
+  const top = WATER_Y + h / 2 + 6;
+  const bottom = FLOOR_Y - h / 2 - 6;
+  const lo = top + c.band[0] * (bottom - top);
+  const hi = top + c.band[1] * (bottom - top);
+  const y = lo + rand(seed * 1.7 + 9) * Math.max(1, hi - lo);
   return { x: WIDTH + w / 2 + 8, y, width: w, height: h, kind, seed };
 }
 
@@ -152,10 +185,10 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     const scroll = BASE_SCROLL + Math.min(state.score * 0.01, 2.6);
     let score = state.score;
 
-    // Scroll billionaires; anything off the left was dodged.
+    // Scroll billionaires at their own pace; off the left = dodged.
     const kept: PlungeObstacle[] = [];
     for (const o of state.obstacles) {
-      const moved = { ...o, x: o.x - scroll };
+      const moved = { ...o, x: o.x - scroll * BILL_CFG[o.kind].speed };
       if (moved.x + moved.width / 2 < -4) score += 10;
       else kept.push(moved);
     }
@@ -173,13 +206,14 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     const zHW = 15;
     const zHH = 9;
     for (const o of kept) {
+      const oy = billY(o, frame);
       const ehw = (o.width * 0.62) / 2;
       const ehh = (o.height * 0.6) / 2;
       if (
         x + zHW > o.x - ehw &&
         x - zHW < o.x + ehw &&
-        y + zHH > o.y - ehh &&
-        y - zHH < o.y + ehh
+        y + zHH > oy - ehh &&
+        y - zHH < oy + ehh
       ) {
         return {
           ...state,
@@ -301,8 +335,7 @@ function drawBillionaire(
 ) {
   const f = (Math.floor(frame / 8) + Math.floor(o.seed)) % 4;
   const img = billSprite(o.kind, f);
-  const bob = Math.sin((frame + o.seed * 20) / 14) * 2.5;
-  const cy = o.y + bob;
+  const cy = billY(o, frame);
   if (!img) {
     ctx.fillStyle = "#c9a227";
     ctx.fillRect(o.x - o.width / 2, cy - o.height / 2, o.width, o.height);

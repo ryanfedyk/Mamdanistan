@@ -88,6 +88,8 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
       "the bureaucratic clock runs out. Gridlock is the only true enemy.",
     accent: "mamdani-ember",
     glyph: "🚧",
+    hero: "/games/fix-the-city-hero.webp",
+    heroThumb: "/games/fix-the-city-icon.webp",
     status: "stub",
   },
 ];

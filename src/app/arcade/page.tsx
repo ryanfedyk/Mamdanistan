@@ -33,11 +33,22 @@ export default function ArcadePage() {
             href={`/arcade/${cab.id}`}
             className="panel crt group block overflow-hidden transition-transform hover:-translate-y-1"
           >
-            <div className="flex items-center justify-center bg-mamdani-ink/60 py-8 text-6xl">
-              <span className="group-hover:animate-press-start" aria-hidden>
-                {cab.glyph}
-              </span>
-            </div>
+            {cab.hero ? (
+              <div className="relative aspect-[16/9] w-full overflow-hidden bg-mamdani-ink/60">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={cab.hero}
+                  alt={`${cab.title} — title art`}
+                  className="h-full w-full object-cover transition-transform duration-200 [image-rendering:pixelated] group-hover:scale-105"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center bg-mamdani-ink/60 py-8 text-6xl">
+                <span className="group-hover:animate-press-start" aria-hidden>
+                  {cab.glyph}
+                </span>
+              </div>
+            )}
             <div className="space-y-2 border-t-2 border-mamdani-steel px-5 py-5">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-pixel text-xs uppercase text-mamdani-mint">

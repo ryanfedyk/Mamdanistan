@@ -156,6 +156,8 @@ export interface FormalPlungeState extends BaseGameState {
   obstacles: PlungeObstacle[];
   /** Frame index at which the next foe spawns. */
   nextSpawn: number;
+  /** How far the pool background has scrolled (px) — drives the moving water. */
+  bgScroll: number;
   /** Laps banked = wins racked up this run. */
   poolsUnlocked: number;
 }

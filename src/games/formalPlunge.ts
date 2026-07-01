@@ -17,20 +17,29 @@ import type {
  * All motion is plain data; render reads state and never mutates it.
  */
 
-const WIDTH = 480;
+const WIDTH = 568; // widescreen — the pool background fills the canvas width
 const HEIGHT = 320;
 const WATER_Y = 124; // surface line — matches the pool background
 const FLOOR_Y = HEIGHT - 8; // pool bottom
-const SWIM_X = 140; // Mamdani's fixed horizontal lane
+const SWIM_X = 168; // Mamdani's fixed horizontal lane
 const MOVE_SPEED = 3.2; // vertical glide speed while ▲/▼ is held
 const BASE_SCROLL = 2.3; // world speed at score 0
+const WATER_SCROLL = 1.9; // background scroll speed (the "moving water")
 const DIVE_FRAMES = 64;
 
 // Scripted dive path (canvas coords): spring off the board, arc up, plunge in.
-const DIVE_START_X = 92;
+const DIVE_START_X = 96;
 const DIVE_START_Y = 57; // standing on the board (feet ≈ board surface)
 const DIVE_APEX_Y = 38; // top of the leap
 const DIVE_END_Y = WATER_Y + 58; // where he settles under the surface
+
+// Camera: zoomed in on the board before the jump, pulling back to the full
+// pool as he dives. Focus points are in canvas coords.
+const CAM_CLOSE = { zoom: 1.75, cx: 104, cy: 78 };
+const CAM_WIDE = { zoom: 1.0, cx: WIDTH / 2, cy: HEIGHT / 2 };
+// Source x (in the background image) where the diving board ends — the region
+// to its right is board-free and tiles seamlessly for the endless swim.
+const BOARD_END_SX = 470;
 
 const KINDS: BillionaireKind[] = ["elon", "baron", "snorkeler", "swan"];
 // On-canvas height + width per billionaire (from sprite aspect ratios).
@@ -107,6 +116,7 @@ function freshState(phase: FormalPlungeState["phase"]): FormalPlungeState {
     obstacles: [],
     nextSpawn: 0,
     poolsUnlocked: 0,
+    bgScroll: 0,
   };
 }
 
@@ -167,18 +177,21 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
         const u = (t - 0.28) / 0.72;
         y = DIVE_APEX_Y + (DIVE_END_Y - DIVE_APEX_Y) * u * u;
       }
+      // Once he leaves the board, the pool starts sliding by (board scrolls away).
+      const bgScroll = state.bgScroll + (t > 0.3 ? WATER_SCROLL * dt : 0);
       if (diveT >= DIVE_FRAMES) {
         return {
           ...state,
           frame,
           mode: "swim",
           diveT,
+          bgScroll,
           diver: { x: SWIM_X, y: DIVE_END_Y, vy: 0 },
           obstacles: [spawnBillionaire(41)],
           nextSpawn: frame + 48,
         };
       }
-      return { ...state, frame, diveT, diver: { x, y, vy: 0 } };
+      return { ...state, frame, diveT, bgScroll, diver: { x, y, vy: 0 } };
     }
 
     // ---- Swim loop: auto-forward, steer to dodge ----
@@ -189,6 +202,7 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     const x = state.diver.x;
 
     const scroll = BASE_SCROLL + Math.min(state.score * 0.006, 1.8);
+    const bgScroll = state.bgScroll + WATER_SCROLL * dt;
     let score = state.score;
 
     // Scroll billionaires at their own pace; off the left = dodged.
@@ -241,13 +255,20 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
       poolsUnlocked,
       obstacles: kept,
       nextSpawn,
+      bgScroll,
       diver: { x, y, vy },
     };
   },
 
   render(ctx, state) {
-    drawScene(ctx, state.frame);
+    // Camera: zoom in on the board pre-jump, pull back to the full pool.
+    const cam = camera(state);
+    ctx.save();
+    ctx.translate(WIDTH / 2, HEIGHT / 2);
+    ctx.scale(cam.zoom, cam.zoom);
+    ctx.translate(-cam.cx, -cam.cy);
 
+    drawScene(ctx, state);
     for (const o of state.obstacles) drawBillionaire(ctx, o, state.frame);
 
     const d = state.diver;
@@ -259,6 +280,7 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
         state.phase === "gameover" ? "lose" : cycle[Math.floor(state.frame / 7) % 4];
       drawZohran(ctx, name, d.x, d.y);
     }
+    ctx.restore();
 
     // HUD.
     ctx.fillStyle = "#FFD23F";
@@ -288,28 +310,60 @@ function diveFrameName(state: FormalPlungeState): Pose {
   return y < WATER_Y + 26 ? "entry" : "splash"; // breaking / under the surface
 }
 
-function drawScene(ctx: CanvasRenderingContext2D, frame: number) {
-  // Pool background — scaled to fill the height, left-aligned so the diving
-  // board stays in frame; the right edge is cropped by the canvas.
+function camera(state: FormalPlungeState): { zoom: number; cx: number; cy: number } {
+  if (state.phase === "attract") return CAM_CLOSE;
+  if (state.mode === "dive") {
+    const t = Math.min(state.diveT / DIVE_FRAMES, 1);
+    const e = t * t * (3 - 2 * t); // smoothstep
+    return {
+      zoom: CAM_CLOSE.zoom + (CAM_WIDE.zoom - CAM_CLOSE.zoom) * e,
+      cx: CAM_CLOSE.cx + (CAM_WIDE.cx - CAM_CLOSE.cx) * e,
+      cy: CAM_CLOSE.cy + (CAM_WIDE.cy - CAM_CLOSE.cy) * e,
+    };
+  }
+  return CAM_WIDE;
+}
+
+function drawScene(ctx: CanvasRenderingContext2D, state: FormalPlungeState) {
   const img = loadImg(bgCache as Record<string, HTMLImageElement>, "bg", "/games/swimming-bg.webp");
-  if (img) {
-    const w = (img.naturalWidth / img.naturalHeight) * HEIGHT;
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(img, 0, 0, Math.round(w), HEIGHT);
-  } else {
+  if (!img) {
     ctx.fillStyle = "#0a2a3a";
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    return;
+  }
+  ctx.imageSmoothingEnabled = false;
+  const scale = HEIGHT / img.naturalHeight;
+  const srcH = img.naturalHeight;
+  const scroll = state.bgScroll;
+
+  // Endless, board-free pool loop. Because the scene is banded horizontally
+  // (crowd / deck / waterline are the same at every x), tiling this slice
+  // keeps every band continuous — only the ripple/crowd content repeats.
+  const loopSw = img.naturalWidth - BOARD_END_SX;
+  const loopW = loopSw * scale;
+  let x = -(scroll % loopW);
+  if (x > 0) x -= loopW;
+  for (; x < WIDTH; x += loopW) {
+    ctx.drawImage(img, BOARD_END_SX, 0, loopSw, srcH, Math.round(x), 0, Math.ceil(loopW), HEIGHT);
   }
 
-  // A few rising bubbles for a little underwater life over the still image.
+  // The diving board slab, drawn on top and scrolling off once.
+  const boardW = BOARD_END_SX * scale;
+  const bx = -scroll;
+  if (bx + boardW > 0) {
+    ctx.drawImage(img, 0, 0, BOARD_END_SX, srcH, Math.round(bx), 0, Math.ceil(boardW), HEIGHT);
+  }
+
+  // A few rising bubbles for a little underwater life.
+  const frame = state.frame;
   ctx.fillStyle = "rgba(255,255,255,0.16)";
   const span = FLOOR_Y - WATER_Y - 10;
-  for (let b = 0; b < 7; b++) {
-    const bx = (b * 131 + frame * 0.4) % WIDTH;
+  for (let b = 0; b < 8; b++) {
+    const bxb = (b * 131 + frame * 0.4) % WIDTH;
     const by = FLOOR_Y - ((frame * 0.8 + b * 57) % span);
     const r = 1 + (b % 2);
     ctx.beginPath();
-    ctx.arc(bx, by, r, 0, Math.PI * 2);
+    ctx.arc(bxb, by, r, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -452,3 +506,23 @@ function banner(ctx: CanvasRenderingContext2D, text: string, sub?: string) {
 }
 
 export const FORMAL_PLUNGE_DIMENSIONS = { width: WIDTH, height: HEIGHT };
+
+/**
+ * Kick off fetching every image the game draws (background, all Mamdani
+ * poses, all billionaire frames) so nothing pops in mid-play. Safe to call
+ * on mount; images are cached and de-duped.
+ */
+export function preloadFormalPlunge(): void {
+  if (typeof window === "undefined") return;
+  loadImg(bgCache as Record<string, HTMLImageElement>, "bg", "/games/swimming-bg.webp");
+  (Object.keys(MAMDANI_FILE) as Pose[]).forEach((pose) =>
+    loadImg(
+      zCache as Record<string, HTMLImageElement>,
+      pose,
+      `/sprites/mamdani/${MAMDANI_FILE[pose]}.webp`,
+    ),
+  );
+  KINDS.forEach((kind) => {
+    for (let f = 0; f < 4; f++) billSprite(kind, f);
+  });
+}

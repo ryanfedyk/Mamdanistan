@@ -1,8 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { GameCanvas } from "@/components/arcade/GameCanvas";
-import { formalPlunge, FORMAL_PLUNGE_DIMENSIONS } from "@/games/formalPlunge";
+import {
+  formalPlunge,
+  FORMAL_PLUNGE_DIMENSIONS,
+  preloadFormalPlunge,
+} from "@/games/formalPlunge";
 import { getCabinet } from "@/data/games";
 
 const KEY_MAP: Record<string, string> = {
@@ -16,6 +21,11 @@ const KEY_MAP: Record<string, string> = {
 
 export default function FormalPlungePage() {
   const cab = getCabinet("formal-plunge");
+
+  // Preload every sprite + the background so nothing pops in mid-play.
+  useEffect(() => {
+    preloadFormalPlunge();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -35,7 +45,8 @@ export default function FormalPlungePage() {
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
+      {/* Full-width game on desktop, mission brief below. */}
+      <div className="space-y-6">
         <GameCanvas
           engine={formalPlunge}
           width={FORMAL_PLUNGE_DIMENSIONS.width}
@@ -43,9 +54,10 @@ export default function FormalPlungePage() {
           keyMap={KEY_MAP}
           controls="updown"
           accentColor="#3DDC97"
+          fluid
         />
 
-        <aside className="panel h-fit space-y-3 px-5 py-5">
+        <aside className="panel space-y-3 px-5 py-5">
           <h2 className="font-pixel text-[10px] uppercase text-mamdani-gold">
             Mission Brief
           </h2>
@@ -55,9 +67,14 @@ export default function FormalPlungePage() {
             <li>▲▼ Hold UP / DOWN (or ↑ / ↓ / W / S) to glide and dodge.</li>
             <li>🚀 Duck the rocket-suit bros, robber barons, cash-divers…</li>
             <li>🦢 …and the swan-float tycoons crashing the public pool.</li>
+            <li>
+              🤖 Their data centers are drinking the pool dry — every lap you
+              swim is water the AI didn&apos;t guzzle.
+            </li>
           </ul>
           <p className="font-terminal text-base text-mamdani-fog/70">
-            One touch and they drag you under. The pool belongs to the people.
+            One touch and they drag you under. The pool belongs to the people —
+            not the server farms.
           </p>
         </aside>
       </div>

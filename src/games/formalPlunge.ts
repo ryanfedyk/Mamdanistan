@@ -22,19 +22,17 @@ const HEIGHT = 320;
 const WATER_Y = 92; // surface line
 const FLOOR_Y = HEIGHT - 12; // pool bottom
 const SWIM_X = 98; // Zohran's fixed horizontal lane
-const IMPULSE = 2.5; // vertical kick added per ▲/▼ press
-const MAXV = 6.2; // vertical speed cap
-const FRICTION = 0.86; // glide damping
-const BASE_SCROLL = 2.6; // world speed at score 0
+const MOVE_SPEED = 3.2; // vertical glide speed while ▲/▼ is held
+const BASE_SCROLL = 2.3; // world speed at score 0
 const DIVE_FRAMES = 54;
 
 const KINDS: BillionaireKind[] = ["elon", "baron", "snorkeler", "swan"];
 // On-canvas height + width per billionaire (from sprite aspect ratios).
 const BILL_H: Record<BillionaireKind, number> = {
-  elon: 56,
-  baron: 84,
-  snorkeler: 50,
-  swan: 74,
+  elon: 48,
+  baron: 74,
+  snorkeler: 42,
+  swan: 64,
 };
 const BILL_ASPECT: Record<BillionaireKind, number> = {
   elon: 1.68,
@@ -55,11 +53,11 @@ const BILL_CFG: Record<
   { speed: number; amp: number; freq: number; band: [number, number] }
 > = {
   // rocket-suit bro — darts across fast, near-flat.
-  elon: { speed: 1.7, amp: 5, freq: 0.16, band: [0.12, 0.85] },
+  elon: { speed: 1.45, amp: 5, freq: 0.14, band: [0.12, 0.85] },
   // robber baron — slow, steady, rides low sipping his tea.
   baron: { speed: 0.9, amp: 3, freq: 0.05, band: [0.42, 0.92] },
-  // cash-diver — medium pace but weaves hard up and down.
-  snorkeler: { speed: 1.12, amp: 40, freq: 0.055, band: [0.2, 0.78] },
+  // cash-diver — medium pace but weaves up and down.
+  snorkeler: { speed: 1.08, amp: 30, freq: 0.05, band: [0.22, 0.76] },
   // swan-float tycoon — big and slow, drifting along the surface.
   swan: { speed: 0.66, amp: 11, freq: 0.03, band: [0.0, 0.32] },
 };
@@ -127,19 +125,16 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
       return state;
     }
 
-    // Mid-swim: ▲ / ▼ nudge Zohran with momentum. The dive is hands-free.
+    // Mid-swim: hold ▲ / ▼ to glide; releasing stops. The dive is hands-free.
     if (state.mode === "swim") {
       if (intent === "up") {
-        return {
-          ...state,
-          diver: { ...state.diver, vy: Math.max(-MAXV, state.diver.vy - IMPULSE) },
-        };
+        return { ...state, diver: { ...state.diver, vy: -MOVE_SPEED } };
       }
       if (intent === "down") {
-        return {
-          ...state,
-          diver: { ...state.diver, vy: Math.min(MAXV, state.diver.vy + IMPULSE) },
-        };
+        return { ...state, diver: { ...state.diver, vy: MOVE_SPEED } };
+      }
+      if (intent === "stopy") {
+        return { ...state, diver: { ...state.diver, vy: 0 } };
       }
     }
     return state;
@@ -171,18 +166,13 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     }
 
     // ---- Swim loop: auto-forward, steer to dodge ----
-    let vy = state.diver.vy * FRICTION;
+    const vy = state.diver.vy; // constant while ▲/▼ held, 0 when released
     let y = state.diver.y + vy;
-    if (y < WATER_Y + 10) {
-      y = WATER_Y + 10;
-      vy = 0;
-    } else if (y > FLOOR_Y - 10) {
-      y = FLOOR_Y - 10;
-      vy = 0;
-    }
+    if (y < WATER_Y + 10) y = WATER_Y + 10;
+    else if (y > FLOOR_Y - 10) y = FLOOR_Y - 10;
     const x = state.diver.x;
 
-    const scroll = BASE_SCROLL + Math.min(state.score * 0.01, 2.6);
+    const scroll = BASE_SCROLL + Math.min(state.score * 0.006, 1.8);
     let score = state.score;
 
     // Scroll billionaires at their own pace; off the left = dodged.
@@ -198,7 +188,7 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     let nextSpawn = state.nextSpawn;
     if (frame >= nextSpawn) {
       kept.push(spawnBillionaire(frame));
-      const gap = Math.max(40, 84 - poolsUnlocked * 5);
+      const gap = Math.max(58, 104 - poolsUnlocked * 5);
       nextSpawn = frame + gap;
     }
 
@@ -207,8 +197,8 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     const zHH = 9;
     for (const o of kept) {
       const oy = billY(o, frame);
-      const ehw = (o.width * 0.62) / 2;
-      const ehh = (o.height * 0.6) / 2;
+      const ehw = (o.width * 0.5) / 2;
+      const ehh = (o.height * 0.55) / 2;
       if (
         x + zHW > o.x - ehw &&
         x - zHW < o.x + ehw &&
@@ -248,9 +238,11 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     if (state.mode === "dive" || state.phase === "attract") {
       drawZohran(ctx, diveFrameName(state), d.x, d.y);
     } else {
-      const cycle = ["reach", "pull", "recover", "rotate"] as const;
+      // Only the two clean, similarly-anchored strokes — recover/rotate read
+      // as dark blobs at this scale, so the cycle skips them.
+      const cycle = ["reach", "pull"] as const;
       const name =
-        state.phase === "gameover" ? "rotate" : cycle[Math.floor(state.frame / 6) % 4];
+        state.phase === "gameover" ? "reach" : cycle[Math.floor(state.frame / 9) % 2];
       drawZohran(ctx, name, d.x, d.y);
     }
 

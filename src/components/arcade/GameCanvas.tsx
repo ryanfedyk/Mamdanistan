@@ -70,10 +70,22 @@ export function GameCanvas<TState extends BaseGameState>({
       const intent = keyMap[e.code];
       if (!intent) return;
       e.preventDefault();
+      if (e.repeat) return; // hold is modelled by the engine, not key-repeat
       stateRef.current = engine.handleInput(stateRef.current, intent);
     };
+    // Releasing a held ▲/▼ direction stops the glide.
+    const onKeyUp = (e: KeyboardEvent) => {
+      const intent = keyMap[e.code];
+      if (intent === "up" || intent === "down") {
+        stateRef.current = engine.handleInput(stateRef.current, "stopy");
+      }
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKeyUp);
+    };
   }, [engine, keyMap]);
 
   const send = (intent: string) => {
@@ -178,12 +190,25 @@ function UpDownControls({
   }
   const pad =
     "flex h-16 flex-1 touch-none items-center justify-center rounded-md border-2 border-black bg-mamdani-steel font-pixel text-xl text-mamdani-gold shadow-pixel active:translate-y-[3px] active:shadow-none";
+  // Hold to glide, release (or slide off) to stop.
+  const hold = (dir: string) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault();
+      onMove(dir);
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      e.preventDefault();
+      onMove("stopy");
+    },
+    onPointerLeave: () => onMove("stopy"),
+    onPointerCancel: () => onMove("stopy"),
+  });
   return (
     <div className="flex gap-2">
-      <button {...pressHandlers(() => onMove("up"))} aria-label="Swim up" className={pad}>
+      <button {...hold("up")} aria-label="Swim up" className={pad}>
         ▲
       </button>
-      <button {...pressHandlers(() => onMove("down"))} aria-label="Swim down" className={pad}>
+      <button {...hold("down")} aria-label="Swim down" className={pad}>
         ▼
       </button>
     </div>

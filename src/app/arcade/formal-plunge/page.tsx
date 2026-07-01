@@ -52,7 +52,7 @@ export default function FormalPlungePage() {
           <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
             <li>🤿 TAP (or the KICK OFF button) to dive off the board.</li>
             <li>🏊 Zohran swims on his own — you just steer.</li>
-            <li>▲▼ Press UP / DOWN (or ↑ / ↓ / W / S) to glide and dodge.</li>
+            <li>▲▼ Hold UP / DOWN (or ↑ / ↓ / W / S) to glide and dodge.</li>
             <li>🚀 Duck the rocket-suit bros, robber barons, cash-divers…</li>
             <li>🦢 …and the swan-float tycoons crashing the public pool.</li>
           </ul>

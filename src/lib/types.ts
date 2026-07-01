@@ -130,16 +130,24 @@ export interface PlungeObstacle {
   y: number;
   width: number;
   height: number;
-  /** Bureaucratic flavor, e.g. "Permit Form B-7". */
+  /** Taunt shown on the hazard, e.g. "FORM B-7" or "NO!". */
   label: string;
+  /** Which foe this is — drives its look and taunt pool. */
+  kind?: "bureaucrat" | "naysayer";
 }
 
 export interface FormalPlungeState extends BaseGameState {
-  /** Diver position + velocity in canvas space. */
+  /** "dive" plays the scripted plunge; "swim" is the dodging loop. */
+  mode: "dive" | "swim";
+  /** Frames elapsed inside the dive animation. */
+  diveT: number;
+  /** Zohran's position + vertical velocity in canvas space. */
   diver: { x: number; y: number; vy: number };
-  /** Incoming red-tape gauntlet. */
+  /** Incoming bureaucrats & naysayers to dodge. */
   obstacles: PlungeObstacle[];
-  /** Pools unlocked = wins banked this run. */
+  /** Frame index at which the next foe spawns. */
+  nextSpawn: number;
+  /** Laps banked = wins racked up this run. */
   poolsUnlocked: number;
 }
 

@@ -8,14 +8,14 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
   {
     id: "formal-plunge",
     title: "Formal Plunge",
-    blurb: "Suit up. Dive in. Unlock the pools.",
+    blurb: "Suit up. Dive in. Out-swim the red tape.",
     howToPlay:
-      "Tap the screen (or hit the FLAP button / SPACE) to flap your blazer " +
-      "and stay airborne. Thread past Permit Forms, Zoning Hearings, and " +
-      "Community Board Vol. IV to splash down clean and unlock another pool.",
+      "Tap to send Zohran off the high board, then tap (or FLAP / SPACE) to " +
+      "stroke through the water. Dodge the bureaucrats and their permits and " +
+      "the naysayers and their booing — every foe you slip past banks a lap.",
     accent: "mamdani-mint",
-    glyph: "🤿",
-    status: "stub",
+    glyph: "🏊",
+    status: "playable",
   },
   {
     id: "landlord-invaders",

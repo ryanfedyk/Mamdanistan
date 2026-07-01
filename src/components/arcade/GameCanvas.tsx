@@ -157,10 +157,10 @@ function FlapControls({ onFlap }: { onFlap: () => void }) {
   return (
     <button
       {...pressHandlers(onFlap)}
-      aria-label="Flap"
+      aria-label="Stroke"
       className="h-16 w-full touch-none rounded-md border-2 border-black bg-mamdani-mint font-pixel text-sm uppercase text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
     >
-      🤿 FLAP
+      🏊 STROKE
     </button>
   );
 }

@@ -6,11 +6,6 @@ import { ARCADE_CABINETS } from "@/data/games";
 import Link from "next/link";
 
 export default function HomePage() {
-  const wins = MAP_PINS.length;
-  const avgProgress = Math.round(
-    MAP_PINS.reduce((sum, p) => sum + p.progress, 0) / Math.max(1, wins),
-  );
-
   return (
     <div>
       {/* ---- HERO ---- */}
@@ -45,15 +40,15 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Hero stat block */}
+          {/* Hero postcard */}
           <div className="lg:col-span-5">
             <div className="rotate-2 border-4 border-outline bg-primary p-3 brutal-shadow-blue">
-              <div className="grid grid-cols-2 gap-3 border-4 border-outline bg-white p-4">
-                <HeroStat value={String(wins)} label="Confirmed Wins" color="text-primary" />
-                <HeroStat value={`${avgProgress}%`} label="Avg. Mission" color="text-tertiary" />
-                <HeroStat value="42" label="Liberated Blocks" color="text-primary" />
-                <HeroStat value="MAX" label="Panic Index" color="text-tertiary" />
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/mamdanistan-postcard.webp"
+                alt="Vintage travel postcard — Greetings from Mamdanistan, New York City"
+                className="block w-full border-4 border-outline"
+              />
             </div>
           </div>
         </div>
@@ -238,25 +233,6 @@ export default function HomePage() {
             </form>
           </div>
         </section>
-      </div>
-    </div>
-  );
-}
-
-function HeroStat({
-  value,
-  label,
-  color,
-}: {
-  value: string;
-  label: string;
-  color: string;
-}) {
-  return (
-    <div className="border-2 border-outline bg-surface p-3">
-      <div className={`text-3xl font-black leading-none ${color}`}>{value}</div>
-      <div className="mt-1 text-[10px] font-black uppercase tracking-tight text-black">
-        {label}
       </div>
     </div>
   );

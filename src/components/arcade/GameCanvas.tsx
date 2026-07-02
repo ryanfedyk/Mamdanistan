@@ -165,11 +165,27 @@ export function GameCanvas<TState extends BaseGameState>({
           <DPad onMove={send} />
         )}
 
-        {/* Coin slot */}
-        <div className="flex gap-2">
-          <ArcadeBtn label="▶ Insert Coin" onPress={() => send("start")} primary />
-          <ArcadeBtn label="↺ Reset" onPress={() => send("reset")} />
-        </div>
+        {/* Coin slot. The updown cabinet starts by tapping the pool / KICK OFF,
+            so it drops the Insert Coin button and sets Reset well apart from
+            the ▲/▼ paddles. */}
+        {controls === "updown" ? (
+          <div className="flex justify-center pt-4">
+            <button
+              onPointerDown={(e) => {
+                e.preventDefault();
+                send("reset");
+              }}
+              className="rounded-md border-2 border-black bg-mamdani-steel px-4 py-1.5 font-pixel text-[9px] uppercase text-mamdani-fog shadow-pixel active:translate-y-[2px] active:shadow-none"
+            >
+              ↺ Reset
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <ArcadeBtn label="▶ Insert Coin" onPress={() => send("start")} primary />
+            <ArcadeBtn label="↺ Reset" onPress={() => send("reset")} />
+          </div>
+        )}
       </div>
     </div>
   );

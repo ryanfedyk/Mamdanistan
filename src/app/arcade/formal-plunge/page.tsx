@@ -36,27 +36,24 @@ export default function FormalPlungePage() {
         ‹ Back to The Arcade
       </Link>
 
+      {/* Cover art — desktop only; on mobile it just eats the screen the
+          game should own. */}
       {cab?.hero && (
-        <div className="panel overflow-hidden">
+        <div className="panel hidden overflow-hidden lg:block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={cab.hero}
             alt={`${cab.title} — title card`}
-            className="max-h-72 w-full object-cover [image-rendering:pixelated]"
+            className="max-h-64 w-full object-cover [image-rendering:pixelated]"
           />
         </div>
       )}
 
-      <header className="space-y-2">
-        <h1 className="pixel-heading text-lg text-mamdani-mint sm:text-2xl">
-          {cab?.title ?? "Formal Plunge"}
-        </h1>
-        <p className="max-w-2xl font-terminal text-xl leading-relaxed text-mamdani-fog">
-          {cab?.howToPlay}
-        </p>
-      </header>
+      <h1 className="pixel-heading text-base text-mamdani-mint sm:text-2xl">
+        {cab?.title ?? "Formal Plunge"}
+      </h1>
 
-      {/* Full-width game on desktop, mission brief below. */}
+      {/* Full-width game; the how-to lives once, below it. */}
       <div className="space-y-6">
         <GameCanvas
           engine={formalPlunge}
@@ -68,26 +65,19 @@ export default function FormalPlungePage() {
           fluid
         />
 
-        <aside className="panel space-y-3 px-5 py-5">
+        <aside className="panel space-y-2 px-5 py-4">
           <h2 className="font-pixel text-[10px] uppercase text-mamdani-gold">
-            Mission Brief
+            How to Play
           </h2>
           <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
-            <li>🤿 TAP (or the KICK OFF button) to dive off the board.</li>
-            <li>🏊 Zohran swims on his own — you just steer.</li>
-            <li>▲▼ Hold UP / DOWN (or ↑ / ↓ / W / S) to glide and dodge.</li>
-            <li>🚀 Duck the rocket-suit bros, robber barons, cash-divers…</li>
-            <li>🦢 …and the swan-float tycoons crashing the public pool.</li>
-            <li>🏁 Reach the finish line at the far end to win the lap.</li>
+            <li>🤿 TAP the pool (or KICK OFF) to dive in — then you just steer.</li>
+            <li>▲▼ Hold UP / DOWN (or ↑ ↓ / W S) to dodge the billionaires.</li>
+            <li>🏁 Reach the finish line to win. One touch and they drag you under.</li>
             <li>
-              🤖 Their data centers are drinking the pool dry — every lap you
-              swim is water the AI didn&apos;t guzzle.
+              🤖 Their data centers are drinking the pool dry — every lap is
+              water the AI didn&apos;t guzzle.
             </li>
           </ul>
-          <p className="font-terminal text-base text-mamdani-fog/70">
-            One touch and they drag you under. The pool belongs to the people —
-            not the server farms.
-          </p>
         </aside>
       </div>
     </div>

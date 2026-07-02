@@ -77,7 +77,7 @@ function NavBar() {
           <img
             src="/logo-mark.webp"
             alt=""
-            className="absolute left-0 top-0 h-28 w-28 max-w-none drop-shadow-[3px_3px_0_#000]"
+            className="pointer-events-none absolute left-0 top-0 h-28 w-28 max-w-none drop-shadow-[3px_3px_0_#000]"
           />
         </span>
         {/* Wordmark — always shown; it's the brand on small screens. */}

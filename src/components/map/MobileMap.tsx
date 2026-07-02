@@ -48,7 +48,7 @@ type Gesture =
 export function MobileMap() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [welcome, setWelcome] = useState(true);
-  const [scale, setScale] = useState(1.6);
+  const [scale, setScale] = useState(2.4);
   const [plotMode, setPlotMode] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -242,10 +242,17 @@ export function MobileMap() {
         <h1 className="brutal-heading text-xl leading-none">The Grid</h1>
       </div>
       <div className="space-y-3 px-4 py-3">
-        <p className="text-sm font-bold text-on-surface">
-          Every flag is a confirmed material win. Tap a pin — or a win below —
-          for its briefing.
-        </p>
+        <div className="space-y-2 border-2 border-outline bg-secondary/40 px-3 py-2">
+          <p className="text-sm font-bold text-on-surface">
+            The Grid is a live tactical map of Mamdanistan — every flag is a
+            confirmed material win for New Yorkers, from fare-free buses to the
+            rent freeze to $0 inhalers.
+          </p>
+          <p className="text-[13px] font-semibold text-on-surface/80">
+            Drag to pan, pinch or scroll to zoom, and tap any flag on the map —
+            or a win in the list below — to pull up its full briefing.
+          </p>
+        </div>
         <ul className="border-2 border-outline">
           {MAP_PINS.map((pin) => (
             <li key={pin.id} className="border-b-2 border-outline/20 last:border-0">
@@ -279,32 +286,30 @@ export function MobileMap() {
     </>
   );
 
-  const panelOpen = welcome || Boolean(active);
-
   return (
-    <div className="fixed inset-x-0 bottom-0 top-[64px] z-40 flex bg-secondary sm:top-[68px] lg:top-[92px]">
-      {/* Desktop: left-docked briefing panel (keeps the tall map's full height).
-          On phones this is hidden in favour of the bottom sheets below. */}
-      {panelOpen && (
-        <aside className="hidden h-full w-[360px] shrink-0 flex-col overflow-hidden border-r-2 border-outline bg-white lg:flex">
-          {/* Slim toolbar so the close control never overlaps the briefing. */}
-          <div className="flex shrink-0 items-center justify-end border-b-2 border-outline bg-secondary px-2 py-1.5">
-            <button
-              onClick={() => {
-                setActiveId(null);
-                setWelcome(false);
-              }}
-              aria-label="Close panel"
-              className="border-2 border-outline bg-white px-2 py-1 text-[11px] font-black uppercase text-primary brutal-shadow-sm"
-            >
-              ✕ Close
-            </button>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {active ? <PinCard pin={active} bare /> : directory}
-          </div>
-        </aside>
-      )}
+    <div className="fixed inset-x-0 bottom-0 top-[64px] z-40 flex bg-secondary sm:top-[68px] lg:top-[92px] lg:pt-9">
+      {/* Desktop: a permanent left-docked panel. It always shows the directory,
+          and swaps to a briefing when a flag is picked (with a back link to the
+          list). Phones use the bottom sheets below instead. */}
+      <aside className="hidden h-full w-[360px] shrink-0 flex-col overflow-hidden border-r-2 border-outline bg-white lg:flex">
+        {active ? (
+          <>
+            <div className="flex shrink-0 items-center border-b-2 border-outline bg-secondary px-2 py-1.5">
+              <button
+                onClick={() => setActiveId(null)}
+                className="border-2 border-outline bg-white px-2 py-1 text-[11px] font-black uppercase text-primary brutal-shadow-sm"
+              >
+                ← All Wins
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <PinCard pin={active} bare />
+            </div>
+          </>
+        ) : (
+          <div className="min-h-0 flex-1 overflow-y-auto">{directory}</div>
+        )}
+      </aside>
 
       {/* Map region — framed to a centered column so wide monitors don't blow
           the map up to full-bleed (which zoomed in disorientingly far). */}
@@ -317,7 +322,9 @@ export function MobileMap() {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            className="h-full w-full touch-none overflow-auto"
+            className={`h-full w-full touch-none overflow-auto ${
+              plotMode ? "" : "cursor-grab active:cursor-grabbing"
+            }`}
           >
             <div
               ref={contentRef}
@@ -375,7 +382,7 @@ export function MobileMap() {
           {!welcome && !active && (
             <button
               onClick={() => setWelcome(true)}
-              className="absolute right-3 top-3 z-20 border-2 border-outline bg-white px-3 py-2 text-xs font-black uppercase text-primary shadow-brutal"
+              className="absolute right-3 top-3 z-20 border-2 border-outline bg-white px-3 py-2 text-xs font-black uppercase text-primary shadow-brutal lg:hidden"
             >
               ⓘ Intel
             </button>

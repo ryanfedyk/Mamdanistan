@@ -2,35 +2,28 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { fixTheCity, FIX_THE_CITY_DIMENSIONS } from "@/games/fixTheCity";
+import {
+  fixTheCityRun,
+  FIX_THE_CITY_RUN_DIMENSIONS,
+  type FixTheCityRunState,
+} from "@/games/fixTheCityRun";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import type { FixTheCityState, GameEngine } from "@/lib/types";
+import type { GameEngine } from "@/lib/types";
 
-type Mode = "classic" | "flow";
-
-type Hud = {
-  score: number;
-  phase: string;
-  timeLeft: number | null;
-  fixed: number;
-  hits: number;
-  quota: number;
-};
+type Hud = { score: number; phase: string; fixed: number; hits: number; quota: number };
 
 /**
- * Fix the City — full-screen mobile cabinet (<lg). The board takes over the
- * whole screen (map-style), with a floating HUD + D-pad and draggable bottom
- * sheets for the briefing and the run results. Engine-agnostic so it can host
- * either the classic dodge variant or the traffic-flow variant.
+ * Fix the City — full-screen mobile cabinet (<lg). The Mayor-runner takes over
+ * the whole screen (map-style), with a floating top bar, big UP/DOWN lane
+ * buttons, and draggable bottom sheets for the briefing + run results.
+ * Swipe up/down or use the buttons to change lanes; tap to start.
  */
 export function FixTheCityArcade({
-  engine = fixTheCity,
-  dims = FIX_THE_CITY_DIMENSIONS,
-  mode = "classic",
+  engine = fixTheCityRun,
+  dims = FIX_THE_CITY_RUN_DIMENSIONS,
 }: {
-  engine?: GameEngine<FixTheCityState>;
+  engine?: GameEngine<FixTheCityRunState>;
   dims?: { width: number; height: number };
-  mode?: Mode;
 } = {}) {
   const W = dims.width;
   const H = dims.height;
@@ -43,7 +36,6 @@ export function FixTheCityArcade({
   const [hud, setHud] = useState<Hud>({
     score: 0,
     phase: "attract",
-    timeLeft: init.timeLeft,
     fixed: 0,
     hits: 0,
     quota: init.quota,
@@ -67,18 +59,10 @@ export function FixTheCityArcade({
       setHud((p) =>
         p.score === next.score &&
         p.phase === next.phase &&
-        p.timeLeft === next.timeLeft &&
         p.fixed === next.fixed &&
         p.hits === next.hits
           ? p
-          : {
-              score: next.score,
-              phase: next.phase,
-              timeLeft: next.timeLeft,
-              fixed: next.fixed,
-              hits: next.hits,
-              quota: next.quota,
-            },
+          : { score: next.score, phase: next.phase, fixed: next.fixed, hits: next.hits, quota: next.quota },
       );
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -92,10 +76,6 @@ export function FixTheCityArcade({
       KeyW: "up",
       ArrowDown: "down",
       KeyS: "down",
-      ArrowLeft: "left",
-      KeyA: "left",
-      ArrowRight: "right",
-      KeyD: "right",
       Space: "start",
       Enter: "start",
     };
@@ -124,6 +104,7 @@ export function FixTheCityArcade({
     setInfoOpen(true);
   };
 
+  // Swipe up/down to change lanes; tap to start.
   const onBoardDown = (e: React.PointerEvent) => {
     swipe.current = { x: e.clientX, y: e.clientY };
   };
@@ -133,42 +114,32 @@ export function FixTheCityArcade({
     if (!s) return;
     const dx = e.clientX - s.x;
     const dy = e.clientY - s.y;
-    const THRESH = 24;
+    const THRESH = 22;
     if (Math.abs(dx) < THRESH && Math.abs(dy) < THRESH) {
       if (!playing) startGame();
       return;
     }
-    if (Math.abs(dx) > Math.abs(dy)) send(dx > 0 ? "right" : "left");
-    else send(dy > 0 ? "down" : "up");
+    if (Math.abs(dy) > Math.abs(dx)) send(dy > 0 ? "down" : "up");
   };
 
   return (
     <div className="fixed inset-x-0 bottom-0 top-[60px] z-40 flex flex-col overflow-hidden bg-mamdani-ink lg:hidden">
-      {/* Floating HUD */}
+      {/* Floating top bar */}
       <div className="flex items-center justify-between px-3 py-2 font-pixel text-[10px] uppercase">
         <Link href="/arcade" className="text-mamdani-fog hover:text-mamdani-cyan">
           ‹ Arcade
         </Link>
-        {hud.timeLeft !== null ? (
-          <span className={hud.timeLeft <= 10 ? "text-mamdani-red" : "text-mamdani-gold"}>
-            ⏱ {Math.max(0, Math.ceil(hud.timeLeft))}
-          </span>
-        ) : (
-          <span className="text-mamdani-fog/60">Traffic Flow</span>
-        )}
+        <span className="text-mamdani-ember">Mayor Run</span>
         {playing ? (
           <span className="text-mamdani-mint">🛠 {hud.fixed}/{hud.quota}</span>
         ) : (
-          <button
-            onClick={() => setInfoOpen(true)}
-            className="text-mamdani-cyan hover:text-mamdani-mint"
-          >
+          <button onClick={() => setInfoOpen(true)} className="text-mamdani-cyan hover:text-mamdani-mint">
             ⓘ Help
           </button>
         )}
       </div>
 
-      {/* Board — swipe or tap. */}
+      {/* Board — swipe up/down or tap to start. */}
       <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-2">
         <canvas
           ref={canvasRef}
@@ -184,85 +155,53 @@ export function FixTheCityArcade({
         />
       </div>
 
-      {/* D-pad */}
-      <div className="px-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-        <DPad onMove={send} />
+      {/* Lane controls */}
+      <div className="px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+        <div className="mx-auto flex max-w-md gap-3">
+          <LaneBtn label="▲" sub="Lane Up" onPress={() => send("up")} />
+          <LaneBtn label="▼" sub="Lane Down" onPress={() => send("down")} />
+        </div>
       </div>
 
       {/* Briefing sheet (attract). */}
       {infoOpen && !finished && (
         <BottomSheet variant="arcade" onClose={() => setInfoOpen(false)}>
-          <InfoContent mode={mode} onStart={startGame} />
+          <InfoContent onStart={startGame} />
         </BottomSheet>
       )}
 
       {/* Results sheet. */}
       {finished && (
         <BottomSheet variant="arcade" key={hud.phase} peek={0.62} onClose={resetToAttract}>
-          <ResultContent mode={mode} hud={hud} onAgain={startGame} />
+          <ResultContent hud={hud} onAgain={startGame} />
         </BottomSheet>
       )}
     </div>
   );
 }
 
-function DPad({ onMove }: { onMove: (intent: string) => void }) {
-  const cell =
-    "flex h-16 w-16 touch-none items-center justify-center rounded-md border-2 border-black bg-mamdani-steel font-pixel text-lg text-mamdani-gold shadow-pixel active:translate-y-[3px] active:shadow-none";
-  const press = (dir: string) => ({
-    onPointerDown: (e: React.PointerEvent) => {
-      e.preventDefault();
-      onMove(dir);
-    },
-  });
+function LaneBtn({ label, sub, onPress }: { label: string; sub: string; onPress: () => void }) {
   return (
-    <div className="mx-auto grid w-fit grid-cols-3 grid-rows-3 gap-2">
-      <span />
-      <button {...press("up")} aria-label="Up" className={cell}>
-        ▲
-      </button>
-      <span />
-      <button {...press("left")} aria-label="Left" className={cell}>
-        ◀
-      </button>
-      <span />
-      <button {...press("right")} aria-label="Right" className={cell}>
-        ▶
-      </button>
-      <span />
-      <button {...press("down")} aria-label="Down" className={cell}>
-        ▼
-      </button>
-      <span />
-    </div>
+    <button
+      onPointerDown={(e) => {
+        e.preventDefault();
+        onPress();
+      }}
+      aria-label={sub}
+      className="flex h-16 flex-1 touch-none flex-col items-center justify-center rounded-md border-2 border-black bg-mamdani-steel font-pixel text-xl text-mamdani-gold shadow-pixel active:translate-y-[3px] active:shadow-none"
+    >
+      {label}
+      <span className="mt-0.5 text-[8px] uppercase text-mamdani-fog">{sub}</span>
+    </button>
   );
 }
 
-function ModeToggle({ mode }: { mode: Mode }) {
-  return mode === "flow" ? (
-    <a
-      href="/arcade/fix-the-city"
-      className="block text-center font-pixel text-[9px] uppercase text-mamdani-cyan hover:text-mamdani-mint"
-    >
-      ◀ Try Classic dodge mode
-    </a>
-  ) : (
-    <a
-      href="/arcade/fix-the-city?mode=flow"
-      className="block text-center font-pixel text-[9px] uppercase text-mamdani-cyan hover:text-mamdani-mint"
-    >
-      ▶ Try Traffic-Flow mode
-    </a>
-  );
-}
-
-function InfoContent({ mode, onStart }: { mode: Mode; onStart: () => void }) {
-  const flow = mode === "flow";
+function InfoContent({ onStart }: { onStart: () => void }) {
   return (
     <div className="space-y-3 px-4 py-3">
       <div>
         <p className="font-pixel text-[8px] uppercase text-mamdani-cyan">
-          ⚠ Wireframe prototype — {flow ? "traffic-flow variant" : "classic dodge"}
+          ⚠ Wireframe prototype — art incoming
         </p>
         <h2 className="pixel-heading text-base text-mamdani-ember">Fix the City</h2>
       </div>
@@ -270,66 +209,46 @@ function InfoContent({ mode, onStart }: { mode: Mode; onStart: () => void }) {
         onClick={onStart}
         className="h-14 w-full rounded-md border-2 border-black bg-mamdani-mint font-pixel text-sm uppercase text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
       >
-        🛠 Start Repairs
+        🏃 Start the Shift
       </button>
-      {flow ? (
-        <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
-          <li>🚦 A hazard stops its lane — cars pile up (they glow red).</li>
-          <li>📈 Every jam pumps the GRIDLOCK meter. Max it out and the city seizes.</li>
-          <li>🛠️ Park on a jam and HOLD (just stay put) to clear it — the lane flows again.</li>
-          <li>🚗 Cars won&apos;t kill you — a bad crossing just makes you stumble a beat.</li>
-          <li>🏁 Clear the whole repair quota to win — keep the city moving.</li>
-        </ul>
-      ) : (
-        <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
-          <li>⬆️ Swipe the board or use the D-pad to hop between lanes.</li>
-          <li>🛠️ Stop on a hazard to patch it. New jobs keep popping up.</li>
-          <li>🚗 A car clips you → bumped back a lane, minus a couple seconds.</li>
-          <li>🏁 Clear the whole repair quota before the clock dies to win.</li>
-        </ul>
-      )}
+      <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
+        <li>🏃 You&apos;re the Mayor — you jog down the street on your own.</li>
+        <li>⬆️⬇️ Swipe up/down (or the buttons) to change lanes.</li>
+        <li>🛠️ Line up on a pothole and it patches — a car is racing it from behind.</li>
+        <li>🚗 Beat the car and the lane flows; lose the race and it jams (📈 gridlock).</li>
+        <li>🏁 Finish the shift&apos;s patches before GRIDLOCK maxes out.</li>
+      </ul>
       <div className="space-y-1 border-t border-mamdani-steel/40 pt-3 font-terminal text-base text-mamdani-fog/80">
         <p className="font-pixel text-[8px] uppercase text-mamdani-fog">Hazard key</p>
         <p>🕳️ pothole · 🚧 construction · 🪨 debris · 🚒 hydrant · 🚦 signal</p>
       </div>
-      <ModeToggle mode={mode} />
     </div>
   );
 }
 
-function ResultContent({
-  mode,
-  hud,
-  onAgain,
-}: {
-  mode: Mode;
-  hud: Hud;
-  onAgain: () => void;
-}) {
+function ResultContent({ hud, onAgain }: { hud: Hud; onAgain: () => void }) {
   const won = hud.phase === "won";
-  const flow = mode === "flow";
   return (
     <div className="space-y-4 px-4 py-3">
       <div>
         <p className="font-pixel text-[8px] uppercase text-mamdani-fog">
-          {won ? "City moving" : flow ? "The city seized up" : "Gridlock wins"}
+          {won ? "Shift complete" : "The city seized up"}
         </p>
         <h2 className={`pixel-heading text-lg ${won ? "text-mamdani-mint" : "text-mamdani-red"}`}>
-          {won ? "City Fixed!" : flow ? "Gridlock" : "Out of Time"}
+          {won ? "City Moving!" : "Gridlock"}
         </h2>
       </div>
       <dl className="grid grid-cols-3 gap-2 text-center">
-        <Stat label="Repairs" value={`${hud.fixed}/${hud.quota}`} />
-        <Stat label="Hits" value={`${hud.hits}`} />
+        <Stat label="Patched" value={`${hud.fixed}/${hud.quota}`} />
+        <Stat label="Jams" value={`${hud.hits}`} />
         <Stat label="Score" value={`${hud.score}`} />
       </dl>
       <button
         onClick={onAgain}
         className="h-14 w-full rounded-md border-2 border-black bg-mamdani-mint font-pixel text-sm uppercase text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
       >
-        ↻ Play Again
+        ↻ Run It Back
       </button>
-      <ModeToggle mode={mode} />
       <Link
         href="/arcade"
         className="block text-center font-pixel text-[9px] uppercase text-mamdani-fog hover:text-mamdani-cyan"

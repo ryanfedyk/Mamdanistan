@@ -11,6 +11,10 @@ const KEY_MAP: Record<string, string> = {
   KeyW: "up",
   ArrowDown: "down",
   KeyS: "down",
+  ArrowRight: "boost",
+  KeyD: "boost",
+  ShiftLeft: "boost",
+  ShiftRight: "boost",
   Space: "start",
   Enter: "start",
 };
@@ -67,8 +71,9 @@ export default function FixTheCityPage() {
             <h2 className="font-pixel text-[10px] uppercase text-mamdani-gold">How to Play</h2>
             <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
               <li>🏃 You&apos;re the Mayor — you jog down the street on your own.</li>
-              <li>⬆️⬇️ Press UP / DOWN (or ▲ ▼ / W S) to change lanes.</li>
+              <li>⬆️⬇️ Press UP / DOWN (or W S) to change lanes.</li>
               <li>🛠️ Line up on a pothole and it patches — a car is racing it from behind.</li>
+              <li>⏩ Hold → / D (or Shift) to DASH ahead and buy space — you skip potholes while sprinting.</li>
               <li>🚗 Beat the car and the lane flows; lose the race and it jams (📈 gridlock).</li>
               <li>🏁 Finish the shift&apos;s patches before GRIDLOCK maxes out.</li>
             </ul>

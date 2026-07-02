@@ -24,16 +24,17 @@ import type { BaseGameState, CityHazardType, GameEngine } from "@/lib/types";
  * ------------------------------------------------------------------ */
 const WIDTH = 460;
 const HEIGHT = 640;
-const LANES = 3;
+const LANES = 5;
 const ROAD_TOP = 188; // skyline sits above this
 const ROAD_BOT = HEIGHT - 120; // sidewalk below this
 const LANE_H = (ROAD_BOT - ROAD_TOP) / LANES;
 const laneY = (lane: number) => ROAD_TOP + LANE_H * (lane + 0.5);
 
 const PX = 120; // Mayor's fixed screen x
-const RUN_SPEED = 126; // world px/sec the Mayor jogs
-const CAR_SPEED = 108; // chaser speed (slower than the Mayor — he can win the race)
-const CHASE_GAP = 500; // how far behind its pothole a chaser starts
+const RUN_SPEED = 130; // world px/sec the Mayor jogs
+const SPRINT_SPEED = 220; // hold DASH to push forward and build a buffer
+const CAR_SPEED = 125; // chaser speed — a tight race the Mayor just edges (DASH to pull ahead)
+const CAR_ENTER = 34; // cars always enter this far off the left edge (never pop in)
 const REACH = 26; // how close (world px) to a hazard to work on it
 const REPAIR_TIME = 0.5; // seconds parked on a pothole to patch it
 const LANE_EASE = 16; // how fast the sprite slides between lanes
@@ -45,7 +46,7 @@ const FIX_RELIEF = 2; // gridlock eased when you patch one in time
 const DRAIN = 2.1; // gridlock bled off per second
 const FIX_SCORE = 100;
 
-const H_SPAWN_MIN = 1.3; // seconds between hazard spawns
+const H_SPAWN_MIN = 1.05; // seconds between hazard spawns
 const H_SPAWN_JITTER = 0.5;
 const H_AHEAD_MIN = 360; // how far ahead (world px) hazards appear (just off-screen right)
 const H_AHEAD_MAX = 560;
@@ -88,6 +89,7 @@ export interface FixTheCityRunState extends BaseGameState {
   gridlock: number;
   repairId: number | null;
   repairT: number;
+  boost: boolean; // DASH held → sprinting forward
   hSpawn: number;
   nextId: number;
 }
@@ -105,7 +107,8 @@ function spawnPair(
   const worldX = s.mayorX + rand(H_AHEAD_MIN, H_AHEAD_MAX);
   if (s.hazards.some((h) => h.lane === lane && Math.abs(h.worldX - worldX) < 130)) return null;
   const hazard: RunHazard = { id: s.nextId, worldX, lane, type: pickType(), fixed: false, pop };
-  const car: RunCar = { hazId: s.nextId, worldX: worldX - CHASE_GAP, lane, crashed: false };
+  // The chaser always enters from off the left edge, never mid-screen.
+  const car: RunCar = { hazId: s.nextId, worldX: s.mayorX - PX - CAR_ENTER, lane, crashed: false };
   return { hazard, car };
 }
 
@@ -131,15 +134,15 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
       timeLeft: null,
       frame: 0,
       mayorX: PX,
-      lane: 1,
-      laneY: 1,
+      lane: 2,
+      laneY: 2,
       hazards: [
-        { id: 1, worldX: PX + 320, lane: 0, type: "pothole", fixed: false, pop: 1 },
-        { id: 2, worldX: PX + 500, lane: 2, type: "construction", fixed: false, pop: 1 },
+        { id: 1, worldX: PX + 340, lane: 1, type: "pothole", fixed: false, pop: 1 },
+        { id: 2, worldX: PX + 520, lane: 3, type: "construction", fixed: false, pop: 1 },
       ],
       cars: [
-        { hazId: 1, worldX: PX + 320 - CHASE_GAP, lane: 0, crashed: false },
-        { hazId: 2, worldX: PX + 500 - CHASE_GAP, lane: 2, crashed: false },
+        { hazId: 1, worldX: PX - PX - CAR_ENTER, lane: 1, crashed: false },
+        { hazId: 2, worldX: PX - PX - CAR_ENTER, lane: 3, crashed: false },
       ],
       quota: QUOTA,
       fixed: 0,
@@ -147,6 +150,7 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
       gridlock: 0,
       repairId: null,
       repairT: 0,
+      boost: false,
       hSpawn: 0.8,
       nextId: 3,
     };
@@ -167,6 +171,8 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
     }
     if (up) return { ...state, lane: Math.max(0, state.lane - 1) };
     if (down) return { ...state, lane: Math.min(LANES - 1, state.lane + 1) };
+    if (intent === "boost") return { ...state, boost: true };
+    if (intent === "boostoff") return { ...state, boost: false };
     return state;
   },
 
@@ -193,15 +199,18 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
     hazards = hazards.map((h) => (h.pop < 1 ? { ...h, pop: Math.min(1, h.pop + dt / 0.18) } : h));
     const laneYv = state.laneY + (lane - state.laneY) * Math.min(1, LANE_EASE * dt);
 
-    // Parked on a patchable hazard in my lane?
-    const target = hazards.find(
-      (h) =>
-        !h.fixed &&
-        h.lane === lane &&
-        h.pop >= 1 &&
-        Math.abs(h.worldX - mayorX) < REACH &&
-        Math.abs(laneYv - lane) < 0.4,
-    );
+    // Parked on a patchable hazard in my lane? (Not while sprinting — you blow
+    // past potholes when you DASH, so they jam behind you.)
+    const target = state.boost
+      ? undefined
+      : hazards.find(
+          (h) =>
+            !h.fixed &&
+            h.lane === lane &&
+            h.pop >= 1 &&
+            Math.abs(h.worldX - mayorX) < REACH &&
+            Math.abs(laneYv - lane) < 0.4,
+        );
 
     if (target) {
       if (repairId !== target.id) {
@@ -221,7 +230,7 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
     } else {
       repairId = null;
       repairT = Math.max(0, repairT - (dt / REPAIR_TIME) * 2);
-      mayorX += RUN_SPEED * dt; // jog forward
+      mayorX += (state.boost ? SPRINT_SPEED : RUN_SPEED) * dt; // jog / sprint forward
     }
     const cam = mayorX - PX;
 
@@ -568,6 +577,20 @@ function drawMayor(ctx: CanvasRenderingContext2D, state: FixTheCityRunState) {
   const cx = PX;
   const cy = laneY(state.laneY);
   const repairing = (state.repairT ?? 0) > 0;
+
+  // Speed lines when dashing.
+  if (state.boost) {
+    ctx.strokeStyle = "rgba(255,210,63,0.5)";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      const yy = cy - 8 + i * 8;
+      const wob = ((state.frame * 6 + i * 13) % 18) - 9;
+      ctx.beginPath();
+      ctx.moveTo(cx - 16 - wob, yy);
+      ctx.lineTo(cx - 30 - wob, yy);
+      ctx.stroke();
+    }
+  }
 
   if (repairing) {
     ctx.strokeStyle = "rgba(61,220,151,0.35)";

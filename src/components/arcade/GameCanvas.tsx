@@ -83,11 +83,13 @@ export function GameCanvas<TState extends BaseGameState>({
       if (e.repeat) return; // hold is modelled by the engine, not key-repeat
       stateRef.current = engine.handleInput(stateRef.current, intent);
     };
-    // Releasing a held ▲/▼ direction stops the glide.
+    // Releasing a held ▲/▼ direction stops the glide; releasing DASH stops the sprint.
     const onKeyUp = (e: KeyboardEvent) => {
       const intent = keyMap[e.code];
       if (intent === "up" || intent === "down") {
         stateRef.current = engine.handleInput(stateRef.current, "stopy");
+      } else if (intent === "boost") {
+        stateRef.current = engine.handleInput(stateRef.current, "boostoff");
       }
     };
     window.addEventListener("keydown", onKey);

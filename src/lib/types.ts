@@ -195,6 +195,8 @@ export interface TrafficCar {
   vx: number;
   /** Body width in px. */
   w: number;
+  /** Traffic-flow variant: current speed magnitude (0 = queued/stopped). */
+  v?: number;
 }
 
 export interface FixTheCityState extends BaseGameState {
@@ -215,6 +217,8 @@ export interface FixTheCityState extends BaseGameState {
   hits: number;
   /** Seconds until the next hazard may pop up. */
   spawnTimer: number;
+  /** Traffic-flow variant: city gridlock pressure, 0–100 (100 = seized up). */
+  gridlock?: number;
 }
 
 /**

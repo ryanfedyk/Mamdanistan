@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { fixTheCity, FIX_THE_CITY_DIMENSIONS } from "@/games/fixTheCity";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import type { FixTheCityState, GameEngine } from "@/lib/types";
 
-const { width: W, height: H } = FIX_THE_CITY_DIMENSIONS;
+type Mode = "classic" | "flow";
 
 type Hud = {
   score: number;
@@ -18,17 +19,27 @@ type Hud = {
 
 /**
  * Fix the City — full-screen mobile cabinet (<lg). The board takes over the
- * whole screen (Google-Maps style, like the tactical map), with floating HUD
- * + D-pad and draggable bottom sheets for the briefing and the run results.
- * Swipe the board or use the D-pad to move; tap it to start.
+ * whole screen (map-style), with a floating HUD + D-pad and draggable bottom
+ * sheets for the briefing and the run results. Engine-agnostic so it can host
+ * either the classic dodge variant or the traffic-flow variant.
  */
-export function FixTheCityArcade() {
+export function FixTheCityArcade({
+  engine = fixTheCity,
+  dims = FIX_THE_CITY_DIMENSIONS,
+  mode = "classic",
+}: {
+  engine?: GameEngine<FixTheCityState>;
+  dims?: { width: number; height: number };
+  mode?: Mode;
+} = {}) {
+  const W = dims.width;
+  const H = dims.height;
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stateRef = useRef(fixTheCity.init());
+  const stateRef = useRef(engine.init());
   const rafRef = useRef(0);
   const lastRef = useRef(0);
   const swipe = useRef<{ x: number; y: number } | null>(null);
-  const init = fixTheCity.init();
+  const init = engine.init();
   const [hud, setHud] = useState<Hud>({
     score: 0,
     phase: "attract",
@@ -40,10 +51,9 @@ export function FixTheCityArcade() {
   const [infoOpen, setInfoOpen] = useState(true);
 
   const send = (intent: string) => {
-    stateRef.current = fixTheCity.handleInput(stateRef.current, intent);
+    stateRef.current = engine.handleInput(stateRef.current, intent);
   };
 
-  // Render loop.
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
@@ -51,9 +61,9 @@ export function FixTheCityArcade() {
       const last = lastRef.current || now;
       const delta = Math.min(now - last, 50);
       lastRef.current = now;
-      const next = fixTheCity.update(stateRef.current, delta);
+      const next = engine.update(stateRef.current, delta);
       stateRef.current = next;
-      fixTheCity.render(ctx, next);
+      engine.render(ctx, next);
       setHud((p) =>
         p.score === next.score &&
         p.phase === next.phase &&
@@ -74,9 +84,8 @@ export function FixTheCityArcade() {
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, []);
+  }, [engine]);
 
-  // Keyboard (hybrid devices).
   useEffect(() => {
     const map: Record<string, string> = {
       ArrowUp: "up",
@@ -100,7 +109,8 @@ export function FixTheCityArcade() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine]);
 
   const playing = hud.phase === "playing";
   const finished = hud.phase === "won" || hud.phase === "gameover";
@@ -114,7 +124,6 @@ export function FixTheCityArcade() {
     setInfoOpen(true);
   };
 
-  // Swipe to move; tap (no drag) to start.
   const onBoardDown = (e: React.PointerEvent) => {
     swipe.current = { x: e.clientX, y: e.clientY };
   };
@@ -126,7 +135,7 @@ export function FixTheCityArcade() {
     const dy = e.clientY - s.y;
     const THRESH = 24;
     if (Math.abs(dx) < THRESH && Math.abs(dy) < THRESH) {
-      if (!playing) startGame(); // a tap
+      if (!playing) startGame();
       return;
     }
     if (Math.abs(dx) > Math.abs(dy)) send(dx > 0 ? "right" : "left");
@@ -140,9 +149,13 @@ export function FixTheCityArcade() {
         <Link href="/arcade" className="text-mamdani-fog hover:text-mamdani-cyan">
           ‹ Arcade
         </Link>
-        <span className={hud.timeLeft !== null && hud.timeLeft <= 10 ? "text-mamdani-red" : "text-mamdani-gold"}>
-          ⏱ {Math.max(0, Math.ceil(hud.timeLeft ?? 0))}
-        </span>
+        {hud.timeLeft !== null ? (
+          <span className={hud.timeLeft <= 10 ? "text-mamdani-red" : "text-mamdani-gold"}>
+            ⏱ {Math.max(0, Math.ceil(hud.timeLeft))}
+          </span>
+        ) : (
+          <span className="text-mamdani-fog/60">Traffic Flow</span>
+        )}
         {playing ? (
           <span className="text-mamdani-mint">🛠 {hud.fixed}/{hud.quota}</span>
         ) : (
@@ -155,7 +168,7 @@ export function FixTheCityArcade() {
         )}
       </div>
 
-      {/* Board — fills the space; swipe or tap. */}
+      {/* Board — swipe or tap. */}
       <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-2">
         <canvas
           ref={canvasRef}
@@ -179,14 +192,14 @@ export function FixTheCityArcade() {
       {/* Briefing sheet (attract). */}
       {infoOpen && !finished && (
         <BottomSheet variant="arcade" onClose={() => setInfoOpen(false)}>
-          <InfoContent onStart={startGame} />
+          <InfoContent mode={mode} onStart={startGame} />
         </BottomSheet>
       )}
 
-      {/* Results sheet (win / game over). */}
+      {/* Results sheet. */}
       {finished && (
         <BottomSheet variant="arcade" key={hud.phase} peek={0.62} onClose={resetToAttract}>
-          <ResultContent hud={hud} onAgain={startGame} />
+          <ResultContent mode={mode} hud={hud} onAgain={startGame} />
         </BottomSheet>
       )}
     </div>
@@ -225,12 +238,31 @@ function DPad({ onMove }: { onMove: (intent: string) => void }) {
   );
 }
 
-function InfoContent({ onStart }: { onStart: () => void }) {
+function ModeToggle({ mode }: { mode: Mode }) {
+  return mode === "flow" ? (
+    <a
+      href="/arcade/fix-the-city"
+      className="block text-center font-pixel text-[9px] uppercase text-mamdani-cyan hover:text-mamdani-mint"
+    >
+      ◀ Try Classic dodge mode
+    </a>
+  ) : (
+    <a
+      href="/arcade/fix-the-city?mode=flow"
+      className="block text-center font-pixel text-[9px] uppercase text-mamdani-cyan hover:text-mamdani-mint"
+    >
+      ▶ Try Traffic-Flow mode
+    </a>
+  );
+}
+
+function InfoContent({ mode, onStart }: { mode: Mode; onStart: () => void }) {
+  const flow = mode === "flow";
   return (
     <div className="space-y-3 px-4 py-3">
       <div>
         <p className="font-pixel text-[8px] uppercase text-mamdani-cyan">
-          ⚠ Wireframe prototype — art incoming
+          ⚠ Wireframe prototype — {flow ? "traffic-flow variant" : "classic dodge"}
         </p>
         <h2 className="pixel-heading text-base text-mamdani-ember">Fix the City</h2>
       </div>
@@ -240,31 +272,50 @@ function InfoContent({ onStart }: { onStart: () => void }) {
       >
         🛠 Start Repairs
       </button>
-      <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
-        <li>⬆️ Swipe the board or use the D-pad to hop between lanes.</li>
-        <li>🛠️ Stop on a hazard to patch it. New jobs keep popping up.</li>
-        <li>🚗 A car clips you → bumped back a lane, minus a couple seconds.</li>
-        <li>🏁 Clear the whole repair quota before the clock dies to win.</li>
-      </ul>
+      {flow ? (
+        <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
+          <li>🚦 A hazard stops its lane — cars pile up (they glow red).</li>
+          <li>📈 Every jam pumps the GRIDLOCK meter. Max it out and you lose.</li>
+          <li>🛠️ Reach a jam and stand on it to clear it — the lane flows again.</li>
+          <li>🚗 Only MOVING cars can clip you; queued cars are safe to pass.</li>
+          <li>🏁 Clear the whole repair quota to win — keep the city moving.</li>
+        </ul>
+      ) : (
+        <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
+          <li>⬆️ Swipe the board or use the D-pad to hop between lanes.</li>
+          <li>🛠️ Stop on a hazard to patch it. New jobs keep popping up.</li>
+          <li>🚗 A car clips you → bumped back a lane, minus a couple seconds.</li>
+          <li>🏁 Clear the whole repair quota before the clock dies to win.</li>
+        </ul>
+      )}
       <div className="space-y-1 border-t border-mamdani-steel/40 pt-3 font-terminal text-base text-mamdani-fog/80">
         <p className="font-pixel text-[8px] uppercase text-mamdani-fog">Hazard key</p>
         <p>🕳️ pothole · 🚧 construction · 🪨 debris · 🚒 hydrant · 🚦 signal</p>
-        <p className="text-mamdani-cyan/70">→ cyan cars run right · ← amber cars run left.</p>
       </div>
+      <ModeToggle mode={mode} />
     </div>
   );
 }
 
-function ResultContent({ hud, onAgain }: { hud: Hud; onAgain: () => void }) {
+function ResultContent({
+  mode,
+  hud,
+  onAgain,
+}: {
+  mode: Mode;
+  hud: Hud;
+  onAgain: () => void;
+}) {
   const won = hud.phase === "won";
+  const flow = mode === "flow";
   return (
     <div className="space-y-4 px-4 py-3">
       <div>
         <p className="font-pixel text-[8px] uppercase text-mamdani-fog">
-          {won ? "Route cleared" : "Gridlock wins"}
+          {won ? "City moving" : flow ? "The city seized up" : "Gridlock wins"}
         </p>
         <h2 className={`pixel-heading text-lg ${won ? "text-mamdani-mint" : "text-mamdani-red"}`}>
-          {won ? "City Fixed!" : "Out of Time"}
+          {won ? "City Fixed!" : flow ? "Gridlock" : "Out of Time"}
         </h2>
       </div>
       <dl className="grid grid-cols-3 gap-2 text-center">
@@ -278,6 +329,7 @@ function ResultContent({ hud, onAgain }: { hud: Hud; onAgain: () => void }) {
       >
         ↻ Play Again
       </button>
+      <ModeToggle mode={mode} />
       <Link
         href="/arcade"
         className="block text-center font-pixel text-[9px] uppercase text-mamdani-fog hover:text-mamdani-cyan"

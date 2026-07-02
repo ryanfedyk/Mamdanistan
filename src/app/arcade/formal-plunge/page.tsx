@@ -36,6 +36,17 @@ export default function FormalPlungePage() {
         ‹ Back to The Arcade
       </Link>
 
+      {cab?.hero && (
+        <div className="panel overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={cab.hero}
+            alt={`${cab.title} — title card`}
+            className="max-h-72 w-full object-cover [image-rendering:pixelated]"
+          />
+        </div>
+      )}
+
       <header className="space-y-2">
         <h1 className="pixel-heading text-lg text-mamdani-mint sm:text-2xl">
           {cab?.title ?? "Formal Plunge"}

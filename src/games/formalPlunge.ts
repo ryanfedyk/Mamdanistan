@@ -50,18 +50,28 @@ const BILL_FRAMES: Record<BillionaireKind, number> = {
   snorkeler: 3,
   swan: 4,
 };
-// On-canvas height + width per billionaire (from sprite aspect ratios).
+// On-canvas height per billionaire, sized so they all read at a consistent
+// human scale next to Mamdani.
 const BILL_H: Record<BillionaireKind, number> = {
-  elon: 46,
-  baron: 78,
-  snorkeler: 50,
-  swan: 74,
+  elon: 62,
+  baron: 92,
+  snorkeler: 66,
+  swan: 96,
 };
 const BILL_ASPECT: Record<BillionaireKind, number> = {
   elon: 2.21,
   baron: 1.24,
   snorkeler: 1.99,
   swan: 1.05,
+};
+// Whether to flip the sprite horizontally so it faces left (its travel
+// direction). elon, snorkeler, and swan are already drawn facing left; only
+// the baron faces right, so he alone gets flipped.
+const BILL_FLIP: Record<BillionaireKind, boolean> = {
+  elon: false,
+  baron: true,
+  snorkeler: false,
+  swan: false,
 };
 
 /**
@@ -292,12 +302,18 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
   },
 
   render(ctx, state) {
-    // Camera: zoom in on the board pre-jump, pull back to the full pool.
+    // Camera: zoom in on the board pre-jump, pull back to the full pool, and
+    // close in again on the win. Clamp the focus so the view never runs past
+    // the background edges (no crop).
     const cam = camera(state);
+    const halfW = WIDTH / 2 / cam.zoom;
+    const halfH = HEIGHT / 2 / cam.zoom;
+    const cx = halfW * 2 >= WIDTH ? WIDTH / 2 : clamp(cam.cx, halfW, WIDTH - halfW);
+    const cy = halfH * 2 >= HEIGHT ? HEIGHT / 2 : clamp(cam.cy, halfH, HEIGHT - halfH);
     ctx.save();
     ctx.translate(WIDTH / 2, HEIGHT / 2);
     ctx.scale(cam.zoom, cam.zoom);
-    ctx.translate(-cam.cx, -cam.cy);
+    ctx.translate(-cx, -cy);
 
     drawScene(ctx, state);
     if (state.finishX !== null) drawFinish(ctx, state.finishX, state.frame);
@@ -328,7 +344,8 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
     } else if (state.phase === "gameover") {
       banner(ctx, "CAUGHT! — TAP TO RETRY", "the pool belongs to the people");
     } else if (state.phase === "won") {
-      banner(ctx, "YOU MADE THE OTHER SIDE!", "the water stays public — tap to swim again");
+      // Keep the win banner up top so it doesn't cover Mamdani's face.
+      banner(ctx, "YOU MADE THE OTHER SIDE!", "the water stays public — tap to swim again", 30);
     } else if (state.finishX !== null) {
       // Cheer on the home stretch.
       ctx.fillStyle = "#FFD23F";
@@ -353,8 +370,16 @@ function diveFrameName(state: FormalPlungeState): Pose {
   return y < WATER_Y + 26 ? "entry" : "splash"; // breaking / under the surface
 }
 
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, v));
+}
+
 function camera(state: FormalPlungeState): { zoom: number; cx: number; cy: number } {
   if (state.phase === "attract") return CAM_CLOSE;
+  // Victory close-up on Mamdani (the clamp in render keeps it in bounds).
+  if (state.phase === "won") {
+    return { zoom: 1.7, cx: state.diver.x, cy: state.diver.y };
+  }
   if (state.mode === "dive") {
     const t = Math.min(state.diveT / DIVE_FRAMES, 1);
     const e = t * t * (3 - 2 * t); // smoothstep
@@ -454,11 +479,12 @@ function drawBillionaire(
     ctx.fillRect(o.x - o.width / 2, cy - o.height / 2, o.width, o.height);
     return;
   }
-  // Flip horizontally so the swimmers face their direction of travel (left).
+  // Face left (their travel direction). Some sprites already face left, so
+  // only flip the ones drawn facing right.
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   ctx.translate(Math.round(o.x), Math.round(cy));
-  ctx.scale(-1, 1);
+  if (BILL_FLIP[o.kind]) ctx.scale(-1, 1);
   ctx.drawImage(
     img,
     Math.round(-o.width / 2),
@@ -511,8 +537,8 @@ const BIG_POSES = new Set<Pose>([
   "lose",
   "win",
 ]);
-const FRAME_H_WATER = 100;
-const FRAME_H_BOARD = 74;
+const FRAME_H_WATER = 118;
+const FRAME_H_BOARD = 84;
 
 const zCache: Partial<Record<Pose, HTMLImageElement>> = {};
 const bCache: Partial<Record<string, HTMLImageElement>> = {};
@@ -564,17 +590,22 @@ function drawZohran(
   );
 }
 
-function banner(ctx: CanvasRenderingContext2D, text: string, sub?: string) {
+function banner(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  sub?: string,
+  midY: number = HEIGHT / 2,
+) {
   ctx.fillStyle = "rgba(11,14,26,0.72)";
-  ctx.fillRect(0, HEIGHT / 2 - 24, WIDTH, sub ? 52 : 36);
+  ctx.fillRect(0, midY - 18, WIDTH, sub ? 52 : 36);
   ctx.fillStyle = "#7ee0ff";
   ctx.font = "12px monospace";
   ctx.textAlign = "center";
-  ctx.fillText(text, WIDTH / 2, HEIGHT / 2 - 2);
+  ctx.fillText(text, WIDTH / 2, midY + 4);
   if (sub) {
     ctx.fillStyle = "#FFD23F";
     ctx.font = "9px monospace";
-    ctx.fillText(sub, WIDTH / 2, HEIGHT / 2 + 16);
+    ctx.fillText(sub, WIDTH / 2, midY + 22);
   }
   ctx.textAlign = "left";
 }

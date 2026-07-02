@@ -7,22 +7,22 @@ import type {
 } from "@/lib/types";
 
 /**
- * "FIX THE CITY" — Traffic-Flow variant (hybrid design).
+ * "FIX THE CITY" — Traffic-Flow variant (v2: non-lethal triage).
  *
- * The city is a stack of one-way streets. When a hazard (pothole, cone,
- * debris, hydrant, dead signal) drops into a lane, the cars behind it pile
- * up bumper-to-bumper and that lane STOPS. Every blocked lane pumps the
- * city-wide GRIDLOCK meter. Your job: hop across the moving traffic, reach
- * each jam, and clear it so the queue drains and the cars flow again.
+ * The city is a stack of one-way streets. A hazard (pothole, cone, debris,
+ * hydrant, dead signal) blocks its lane and the cars pile up behind it, so the
+ * lane STOPS. Every jam pumps the city-wide GRIDLOCK meter — worse the longer
+ * the queue. Your repair crew roams the grid, parks on a jam, and holds a beat
+ * to clear it; the freed traffic then eases back up to speed.
  *
  *   • Win  — clear the whole repair quota (the city keeps moving).
  *   • Lose — GRIDLOCK hits 100 (the city seizes up).
  *
- * The dodge survives as friction: only MOVING cars can clip you (a queued
- * car is safe to weave past), and a fender-bender you cause bumps gridlock.
+ * Cars are NOT lethal. Crossing a moving lane at the wrong moment just makes
+ * the crew stumble (a brief stall) — never a death. Repairs happen on the jam
+ * itself, where the queued cars are already stopped, so nothing runs you over.
  *
- * Wireframe build — vectors only. Sibling of `fixTheCity.ts` (the classic
- * dodge variant); selectable via `?mode=flow`.
+ * Wireframe build — vectors only. Selectable via `?mode=flow`.
  */
 
 /* ------------------------------------------------------------------ *
@@ -38,36 +38,42 @@ const START_COL = 4;
 const START_ROW = 12;
 
 const QUOTA = 12; // repairs to win
-const MAX_ACTIVE = 3; // simultaneous jams (each pumps gridlock)
-const INITIAL_HAZARDS = 2;
-const SPAWN_INTERVAL = 1.5; // seconds between new jams
+const MAX_ACTIVE = 4; // simultaneous jams
+const INITIAL_HAZARDS = 3;
+const SPAWN_INTERVAL = 1.4; // seconds between new jams
 const POP_TIME = 0.22;
+const REPAIR_TIME = 0.65; // seconds parked on a jam to clear it
 
 const GRIDLOCK_MAX = 100;
-const PUMP_PER_HAZARD = 6; // gridlock/sec added per active jam
-const DRAIN = 3; // gridlock/sec bled off constantly
-const HIT_GRIDLOCK = 3; // small gridlock bump when a car clips you (minor)
+const PUMP_BASE = 2.0; // gridlock/sec per active jam
+const PUMP_PER_QUEUED = 0.7; // extra gridlock/sec per stopped car behind it
+const PUMP_CAP = 6; // max gridlock/sec any single jam can pump
+const DRAIN = 4.2; // gridlock/sec bled off constantly
 
 const FIX_SCORE = 25;
 const CLEAR_BONUS = 3; // score per point of gridlock headroom on win
-const INVULN_TIME = 1.3;
-const FIX_IFRAMES = 0.85; // grace after a repair, so the released queue can't run you over
-const MOVING = 22; // px/sec above which a car counts as "moving" (dangerous)
+const STUN_TIME = 0.35; // movement stall after a car bump
+const MOVING = 22; // px/sec above which a car counts as "moving"
 
-/* Traffic density: bigger gaps → crossable windows between cars. */
-const SEED_SPACING = 150; // extra px between seeded cars
-const SPAWN_SPACING = 120; // min clear px at the entrance before a new car spawns
+/* Traffic dynamics. */
+const ACCEL = 130; // px/sec² — how fast cars speed up (gentle release)
+const DECEL = 280; // px/sec² — how fast they brake
+const STOP_GAP = 5; // standstill bumper gap (px)
+const SLOW_ZONE = 58; // px over which a car eases from stop → free-flow
+const HAZARD_CLEAR = CELL * 0.42; // how far ahead of the jam cars stop
+const SEED_SPACING = 150;
+const SPAWN_SPACING = 120;
 
 /* Lanes: rows carrying one-way traffic + their free-flow speed. */
 const LANES: Array<{ row: number; dir: 1 | -1; speed: number; w: number }> = [
-  { row: 1, dir: 1, speed: 58, w: 58 },
-  { row: 2, dir: -1, speed: 72, w: 52 },
-  { row: 4, dir: 1, speed: 64, w: 62 },
-  { row: 5, dir: -1, speed: 80, w: 50 },
-  { row: 7, dir: 1, speed: 56, w: 60 },
-  { row: 8, dir: -1, speed: 76, w: 54 },
-  { row: 10, dir: 1, speed: 66, w: 56 },
-  { row: 11, dir: -1, speed: 84, w: 64 },
+  { row: 1, dir: 1, speed: 64, w: 58 },
+  { row: 2, dir: -1, speed: 78, w: 52 },
+  { row: 4, dir: 1, speed: 70, w: 62 },
+  { row: 5, dir: -1, speed: 86, w: 50 },
+  { row: 7, dir: 1, speed: 62, w: 60 },
+  { row: 8, dir: -1, speed: 82, w: 54 },
+  { row: 10, dir: 1, speed: 72, w: 56 },
+  { row: 11, dir: -1, speed: 90, w: 64 },
 ];
 
 const HAZARD_TYPES: CityHazardType[] = [
@@ -80,22 +86,10 @@ const HAZARD_TYPES: CityHazardType[] = [
 
 const isRoad = (row: number) => LANES.some((l) => l.row === row);
 const laneDir = (row: number) => LANES.find((l) => l.row === row)?.dir ?? 1;
-const laneOf = (row: number) => LANES.find((l) => l.row === row);
-
-function nearestSafeRow(row: number): number {
-  for (let d = 0; d < ROWS; d++) {
-    if (row + d < ROWS && !isRoad(row + d)) return row + d;
-    if (row - d >= 0 && !isRoad(row - d)) return row - d;
-  }
-  return START_ROW;
-}
 
 /* ------------------------------------------------------------------ *
  * Traffic
  * ------------------------------------------------------------------ */
-const CAR_GAP = 10; // extra bumper spacing beyond car width
-const HAZARD_CLEAR = CELL * 0.5; // how far ahead of the hazard cell cars stop
-
 function seedCars(): TrafficCar[] {
   const cars: TrafficCar[] = [];
   for (const L of LANES) {
@@ -110,9 +104,10 @@ function seedCars(): TrafficCar[] {
 }
 
 /**
- * One frame of car-following per lane: cars advance at their lane's free-flow
- * speed unless something is ahead — the car in front, or an active hazard —
- * in which case they brake and queue. Returns the new car list.
+ * One frame of car-following with acceleration: each car eases toward its
+ * lane's free-flow speed, braking for the car (or hazard) ahead and queueing
+ * behind a jam. When the jam clears, the queue accelerates back up smoothly —
+ * no instant surge.
  */
 function stepTraffic(
   cars: TrafficCar[],
@@ -122,29 +117,39 @@ function stepTraffic(
   const out: TrafficCar[] = [];
   for (const L of LANES) {
     const dir = L.dir;
-    const laneCars = cars.filter((c) => c.row === L.row);
-    // Travel coordinate t increases in the direction of motion.
     const T = (x: number) => x * dir;
+    const laneCars = cars.filter((c) => c.row === L.row);
     const haz = hazards.find((h) => h.row === L.row);
     const tHaz = haz ? T(haz.col * CELL + CELL / 2) : null;
 
     laneCars.sort((a, b) => T(b.x) - T(a.x)); // front (largest t) first
     let aheadT = Infinity;
+    let aheadW = 0;
     for (const c of laneCars) {
       const t = T(c.x);
-      const desired = t + L.speed * dt;
-      let bound = aheadT - (c.w + CAR_GAP);
-      // A hazard blocks only cars still behind it.
-      if (tHaz !== null && t < tHaz) bound = Math.min(bound, tHaz - HAZARD_CLEAR);
-      let nt = Math.min(desired, bound);
-      if (nt < t) nt = t; // never reverse
-      c.v = (nt - t) / dt;
+      const gapAhead =
+        aheadT === Infinity ? Infinity : aheadT - t - (c.w / 2 + aheadW / 2);
+      const gapHaz =
+        tHaz !== null && t < tHaz ? tHaz - t - (c.w / 2 + HAZARD_CLEAR) : Infinity;
+      const gap = Math.min(gapAhead, gapHaz);
+
+      const target =
+        gap <= STOP_GAP
+          ? 0
+          : Math.min(L.speed, (L.speed * (gap - STOP_GAP)) / SLOW_ZONE);
+      let v = c.v ?? L.speed;
+      v += Math.max(-DECEL * dt, Math.min(ACCEL * dt, target - v));
+      v = Math.max(0, v);
+      const adv = Math.min(v * dt, Math.max(0, gap - STOP_GAP));
+      const nt = t + adv;
+
+      c.v = v;
       c.x = nt * dir;
       c.vx = dir * L.speed;
       aheadT = nt;
+      aheadW = c.w;
     }
 
-    // Despawn past the exit; remember the most-upstream car for spawning.
     let minT = Infinity;
     for (const c of laneCars) {
       const exited = dir > 0 ? c.x > WIDTH + c.w : c.x < -c.w;
@@ -152,8 +157,6 @@ function stepTraffic(
       out.push(c);
       minT = Math.min(minT, T(c.x));
     }
-    // Spawn a fresh car at the entrance when there's room (and the lane isn't
-    // already packed) so flow is continuous.
     const entranceT = dir > 0 ? -L.w / 2 : T(WIDTH + L.w / 2);
     const laneCount = out.filter((c) => c.row === L.row).length;
     if ((minT === Infinity || minT - entranceT > L.w + SPAWN_SPACING) && laneCount < COLS + 2) {
@@ -161,6 +164,19 @@ function stepTraffic(
     }
   }
   return out;
+}
+
+/** Cars stopped behind a given hazard (drives its gridlock weight). */
+function queueLen(cars: TrafficCar[], h: CityHazard): number {
+  const dir = laneDir(h.row);
+  const tHaz = (h.col * CELL + CELL / 2) * dir;
+  let n = 0;
+  for (const c of cars) {
+    if (c.row !== h.row) continue;
+    if (Math.abs(c.v ?? 0) >= MOVING) continue;
+    if (c.x * dir < tHaz) n++;
+  }
+  return n;
 }
 
 function pickType(): CityHazardType {
@@ -191,7 +207,13 @@ function startState(): FixTheCityState {
     const cell = pickSpawnCell(hazards, { col: START_COL, row: START_ROW });
     if (cell) hazards.push({ ...cell, type: pickType(), pop: 1 });
   }
-  return { ...base, phase: "playing", cars: seedCars(), hazards, spawnTimer: SPAWN_INTERVAL };
+  return {
+    ...base,
+    phase: "playing",
+    cars: seedCars(),
+    hazards,
+    spawnTimer: SPAWN_INTERVAL,
+  };
 }
 
 function demoHazards(): CityHazard[] {
@@ -203,37 +225,14 @@ function demoHazards(): CityHazard[] {
 }
 
 function applyMove(state: FixTheCityState, intent: string): FixTheCityState {
+  if ((state.stun ?? 0) > 0) return state; // stalled from a bump
   let { col, row } = state.player;
   if (intent === "up") row = Math.max(0, row - 1);
   else if (intent === "down") row = Math.min(ROWS - 1, row + 1);
   else if (intent === "left") col = Math.max(0, col - 1);
   else if (intent === "right") col = Math.min(COLS - 1, col + 1);
-
-  let score = state.score;
-  let fixed = state.fixed;
-  const hazards = state.hazards.filter((h) => {
-    if (h.col === col && h.row === row) {
-      score += FIX_SCORE;
-      fixed += 1;
-      return false;
-    }
-    return true;
-  });
-
-  const didFix = fixed > state.fixed;
-  const won = fixed >= state.quota;
-  if (won) score += Math.round((GRIDLOCK_MAX - (state.gridlock ?? 0)) * CLEAR_BONUS);
-
-  return {
-    ...state,
-    player: { col, row },
-    hazards,
-    score,
-    fixed,
-    // Leap clear as the freed traffic surges back.
-    invuln: didFix ? Math.max(state.invuln, FIX_IFRAMES) : state.invuln,
-    phase: won ? "won" : state.phase,
-  };
+  // Moving abandons the current repair.
+  return { ...state, player: { col, row }, repairT: 0 };
 }
 
 /* ------------------------------------------------------------------ *
@@ -244,7 +243,7 @@ export const fixTheCityFlow: GameEngine<FixTheCityState> = {
     return {
       phase: "attract",
       score: 0,
-      timeLeft: null, // no clock — GRIDLOCK is the enemy
+      timeLeft: null,
       frame: 0,
       player: { col: START_COL, row: START_ROW },
       grid: { cols: COLS, rows: ROWS },
@@ -256,6 +255,8 @@ export const fixTheCityFlow: GameEngine<FixTheCityState> = {
       hits: 0,
       spawnTimer: SPAWN_INTERVAL,
       gridlock: 0,
+      repairT: 0,
+      stun: 0,
     };
   },
 
@@ -294,31 +295,62 @@ export const fixTheCityFlow: GameEngine<FixTheCityState> = {
       spawnTimer = SPAWN_INTERVAL;
     }
 
-    // Gridlock: every active jam pumps it; it always bleeds off a little.
-    let gridlock = (state.gridlock ?? 0) + (hazards.length * PUMP_PER_HAZARD - DRAIN) * dt;
-
-    // Collision — only MOVING cars are dangerous.
-    let { col, row } = state.player;
-    let invuln = Math.max(0, state.invuln - dt);
+    const { col, row } = state.player;
+    let stun = Math.max(0, (state.stun ?? 0) - dt);
     let hits = state.hits;
-    if (invuln <= 0) {
+    let repairT = state.repairT ?? 0;
+    let fixed = state.fixed;
+    let score = state.score;
+
+    // Non-lethal bump: a moving car sharing the crew's cell → brief stumble.
+    if (stun <= 0) {
       const pcx = col * CELL + CELL / 2;
-      const struck = cars.some(
+      const bumped = cars.some(
         (c) =>
           c.row === row &&
           Math.abs(c.v ?? 0) > MOVING &&
-          Math.abs(c.x - pcx) < c.w / 2 + CELL * 0.34,
+          Math.abs(c.x - pcx) < c.w / 2 + CELL * 0.3,
       );
-      if (struck) {
+      if (bumped) {
+        stun = STUN_TIME;
         hits += 1;
-        invuln = INVULN_TIME;
-        gridlock += HIT_GRIDLOCK;
-        row = nearestSafeRow(row);
+        repairT = 0;
       }
     }
 
-    gridlock = Math.max(0, Math.min(GRIDLOCK_MAX, gridlock));
-    const phase = gridlock >= GRIDLOCK_MAX ? "gameover" : state.phase;
+    // Repair: parking on a jam fills the ring; finishing clears it.
+    if (stun <= 0) {
+      const onHaz = hazards.find((h) => h.col === col && h.row === row && h.pop >= 1);
+      if (onHaz) {
+        repairT += dt / REPAIR_TIME;
+        if (repairT >= 1) {
+          hazards = hazards.filter((h) => h !== onHaz);
+          fixed += 1;
+          score += FIX_SCORE;
+          repairT = 0;
+        }
+      } else {
+        repairT = Math.max(0, repairT - (dt / REPAIR_TIME) * 2);
+      }
+    }
+
+    // Gridlock: each jam pumps, weighted by how backed-up it is.
+    let pump = 0;
+    for (const h of hazards) {
+      pump += Math.min(PUMP_CAP, PUMP_BASE + PUMP_PER_QUEUED * queueLen(cars, h));
+    }
+    let gridlock = Math.max(
+      0,
+      Math.min(GRIDLOCK_MAX, (state.gridlock ?? 0) + (pump - DRAIN) * dt),
+    );
+
+    let phase: FixTheCityState["phase"] = state.phase;
+    if (fixed >= state.quota) {
+      score += Math.round((GRIDLOCK_MAX - gridlock) * CLEAR_BONUS);
+      phase = "won";
+    } else if (gridlock >= GRIDLOCK_MAX) {
+      phase = "gameover";
+    }
 
     return {
       ...state,
@@ -327,9 +359,11 @@ export const fixTheCityFlow: GameEngine<FixTheCityState> = {
       hazards,
       spawnTimer,
       gridlock,
-      player: { col, row },
-      invuln,
+      repairT,
+      stun,
       hits,
+      fixed,
+      score,
       phase,
     };
   },
@@ -341,7 +375,6 @@ export const fixTheCityFlow: GameEngine<FixTheCityState> = {
     for (let r = 0; r < ROWS; r++) {
       const y = r * CELL;
       if (isRoad(r)) {
-        // Tint the whole lane red when it's badly jammed.
         const jam = state.cars.filter((c) => c.row === r && Math.abs(c.v ?? 0) < 5).length;
         ctx.fillStyle = jam >= 3 ? "rgba(255,46,77,0.10)" : "rgba(255,255,255,0.03)";
         ctx.fillRect(0, y, WIDTH, CELL);
@@ -360,7 +393,7 @@ export const fixTheCityFlow: GameEngine<FixTheCityState> = {
         ctx.strokeStyle = "rgba(61,220,151,0.30)";
         ctx.lineWidth = 1;
         ctx.strokeRect(0.5, y + 0.5, WIDTH - 1, CELL - 1);
-        const label = r === 0 ? "" : r === ROWS - 1 ? "DEPOT" : "";
+        const label = r === ROWS - 1 ? "DEPOT" : "";
         if (label) {
           ctx.fillStyle = "rgba(61,220,151,0.45)";
           ctx.font = "8px monospace";
@@ -382,13 +415,11 @@ export const fixTheCityFlow: GameEngine<FixTheCityState> = {
     for (const h of state.hazards) drawHazard(ctx, h);
     for (const c of state.cars) drawCar(ctx, c);
 
-    const blink = state.invuln > 0 && Math.floor(state.frame / 4) % 2 === 0;
-    if (!blink) drawPlayer(ctx, state.player);
-
+    drawPlayer(ctx, state);
     drawHud(ctx, state);
 
     if (state.phase === "attract")
-      banner(ctx, "TAP / ARROWS TO START", "clear the jams — keep the city moving");
+      banner(ctx, "TAP / ARROWS TO START", "park on a jam & hold to clear it");
     else if (state.phase === "won")
       banner(ctx, "CITY FLOWING — GRIDLOCK BEATEN", "tap reset to run it back");
     else if (state.phase === "gameover")
@@ -438,7 +469,6 @@ function drawCar(ctx: CanvasRenderingContext2D, c: TrafficCar) {
   const left = c.x - c.w / 2;
   const stopped = Math.abs(c.v ?? 0) < MOVING;
   const rightward = c.vx > 0;
-  // Moving cars read by direction (cyan → / amber ←); stopped cars glow red.
   const color = stopped ? "#FF2E4D" : rightward ? "#21D4FD" : "#FFB454";
 
   rrect(ctx, left, top, c.w, h, 7);
@@ -452,7 +482,6 @@ function drawCar(ctx: CanvasRenderingContext2D, c: TrafficCar) {
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // Brake lights at the rear when queued.
   if (stopped) {
     ctx.fillStyle = "#FF2E4D";
     const rx = rightward ? left + 1 : left + c.w - 4;
@@ -583,15 +612,33 @@ function drawHazard(ctx: CanvasRenderingContext2D, h: CityHazard) {
   ctx.restore();
 }
 
-function drawPlayer(ctx: CanvasRenderingContext2D, p: { col: number; row: number }) {
+function drawPlayer(ctx: CanvasRenderingContext2D, state: FixTheCityState) {
+  const p = state.player;
   const cx = p.col * CELL + CELL / 2;
   const cy = p.row * CELL + CELL / 2;
+  const stunned = (state.stun ?? 0) > 0;
+
+  // Repair progress ring.
+  const rt = state.repairT ?? 0;
+  if (rt > 0) {
+    ctx.strokeStyle = "rgba(61,220,151,0.35)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 17, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "#3DDC97";
+    ctx.beginPath();
+    ctx.arc(cx, cy, 17, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * rt);
+    ctx.stroke();
+  }
+
   rrect(ctx, cx - 13, cy - 13, 26, 26, 6);
-  ctx.fillStyle = "rgba(255,107,53,0.22)";
+  ctx.fillStyle = stunned ? "rgba(255,210,63,0.25)" : "rgba(255,107,53,0.22)";
   ctx.fill();
-  ctx.strokeStyle = "#FF6B35";
+  ctx.strokeStyle = stunned ? "#FFD23F" : "#FF6B35";
   ctx.lineWidth = 2.5;
   ctx.stroke();
+  // Hard-hat mark.
   ctx.strokeStyle = "#FFD23F";
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -605,7 +652,6 @@ function drawPlayer(ctx: CanvasRenderingContext2D, p: { col: number; row: number
 function drawHud(ctx: CanvasRenderingContext2D, state: FixTheCityState) {
   ctx.font = "9px monospace";
   ctx.textAlign = "left";
-  // Repairs.
   ctx.fillStyle = "rgba(11,14,26,0.82)";
   ctx.fillRect(4, 4, 104, 16);
   ctx.strokeStyle = "rgba(255,210,63,0.5)";
@@ -613,15 +659,6 @@ function drawHud(ctx: CanvasRenderingContext2D, state: FixTheCityState) {
   ctx.strokeRect(4.5, 4.5, 103, 15);
   ctx.fillStyle = "#FFD23F";
   ctx.fillText(`REPAIRS ${state.fixed}/${state.quota}`, 10, 15);
-  // Hits.
-  ctx.textAlign = "right";
-  ctx.fillStyle = "rgba(11,14,26,0.82)";
-  ctx.fillRect(WIDTH - 74, 4, 70, 16);
-  ctx.strokeStyle = "rgba(255,77,109,0.5)";
-  ctx.strokeRect(WIDTH - 73.5, 4.5, 69, 15);
-  ctx.fillStyle = "#FF4D6D";
-  ctx.fillText(`HITS ${state.hits}`, WIDTH - 10, 15);
-  ctx.textAlign = "left";
 
   // GRIDLOCK meter.
   const g = state.gridlock ?? 0;

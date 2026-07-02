@@ -275,9 +275,9 @@ function InfoContent({ mode, onStart }: { mode: Mode; onStart: () => void }) {
       {flow ? (
         <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
           <li>🚦 A hazard stops its lane — cars pile up (they glow red).</li>
-          <li>📈 Every jam pumps the GRIDLOCK meter. Max it out and you lose.</li>
-          <li>🛠️ Reach a jam and stand on it to clear it — the lane flows again.</li>
-          <li>🚗 Only MOVING cars can clip you; queued cars are safe to pass.</li>
+          <li>📈 Every jam pumps the GRIDLOCK meter. Max it out and the city seizes.</li>
+          <li>🛠️ Park on a jam and HOLD (just stay put) to clear it — the lane flows again.</li>
+          <li>🚗 Cars won&apos;t kill you — a bad crossing just makes you stumble a beat.</li>
           <li>🏁 Clear the whole repair quota to win — keep the city moving.</li>
         </ul>
       ) : (

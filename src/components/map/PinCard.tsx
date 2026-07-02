@@ -41,6 +41,11 @@ export function PinCard({
           <p className="mt-1 text-xs font-black uppercase tracking-wide text-white">
             {pin.neighborhood} · {pin.borough}
           </p>
+          {pin.kind && (
+            <span className="mt-2 inline-block border-2 border-outline bg-white px-1.5 py-0.5 text-[10px] font-black uppercase text-black">
+              {pin.kind === "moment" ? "★ Moment" : "◆ Policy Win"}
+            </span>
+          )}
         </div>
         {onClose && (
           <button

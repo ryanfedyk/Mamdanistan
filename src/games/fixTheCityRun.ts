@@ -54,13 +54,21 @@ const H_AHEAD_MIN = 360; // how far ahead (world px) hazards appear (just off-sc
 const H_AHEAD_MAX = 560;
 const CAR_W = 54;
 
-const HAZARD_TYPES: CityHazardType[] = [
-  "pothole",
-  "construction",
-  "debris",
-  "hydrant",
-  "signal",
+// Spawn mix — cones are frequent (they're an instant grab, so they add action
+// without piling on difficulty); potholes/debris/crumbles are the real work.
+const HAZARD_WEIGHTS: Array<[CityHazardType, number]> = [
+  ["construction", 42], // traffic cone — grabbed instantly
+  ["pothole", 26],
+  ["debris", 14],
+  ["hydrant", 9], // crumbling asphalt
+  ["signal", 9], // large pothole
 ];
+const HAZARD_WEIGHT_TOTAL = HAZARD_WEIGHTS.reduce((s, [, w]) => s + w, 0);
+
+// Cleaning frames split into two tools, applied per pothole; the Mayor faces
+// forward (frames are mirrored at draw time to match his run direction).
+const SHOVEL_FRAMES = [1, 0, 3]; // gray-shovel dig cycle
+const JACK_FRAMES = [2, 5]; // yellow-jackhammer buck
 
 /* ------------------------------------------------------------------ *
  * Sprite loading (browser-only; vectors draw until an image is ready)
@@ -180,7 +188,19 @@ export interface FixTheCityRunState extends BaseGameState {
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const randLane = () => Math.floor(Math.random() * LANES);
-const pickType = () => HAZARD_TYPES[Math.floor(Math.random() * HAZARD_TYPES.length)];
+function pickType(): CityHazardType {
+  let r = Math.random() * HAZARD_WEIGHT_TOTAL;
+  for (const [type, w] of HAZARD_WEIGHTS) {
+    if ((r -= w) < 0) return type;
+  }
+  return "pothole";
+}
+
+/** Which cleaning animation a hazard uses (cones are instant, so never here). */
+function cleaningTool(h: RunHazard): "shovel" | "jack" {
+  if (h.type === "debris") return "shovel"; // sweep up the rubble pile
+  return h.id % 2 === 0 ? "shovel" : "jack"; // potholes: mix the two
+}
 
 /** A hazard + its chaser car, or null if it would stack on an existing one. */
 function spawnPair(
@@ -283,13 +303,32 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
     hazards = hazards.map((h) => (h.pop < 1 ? { ...h, pop: Math.min(1, h.pop + dt / 0.18) } : h));
     const laneYv = state.laneY + (lane - state.laneY) * Math.min(1, LANE_EASE * dt);
 
-    // Parked on a patchable hazard in my lane? (Not while sprinting — you blow
-    // past potholes when you DASH, so they jam behind you.)
+    // Cones are grabbed instantly on contact — no dig, and even mid-dash.
+    hazards = hazards.map((h) => {
+      if (
+        !h.fixed &&
+        h.type === "construction" &&
+        h.lane === lane &&
+        h.pop >= 1 &&
+        Math.abs(h.worldX - mayorX) < REACH &&
+        Math.abs(laneYv - lane) < 0.5
+      ) {
+        fixed += 1;
+        score += FIX_SCORE;
+        gridlock = Math.max(0, gridlock - FIX_RELIEF);
+        return { ...h, fixed: true };
+      }
+      return h;
+    });
+
+    // Parked on a patchable hazard in my lane? (Cones are instant above; you
+    // also blow past dig jobs while sprinting, so they jam behind you.)
     const target = state.boost
       ? undefined
       : hazards.find(
           (h) =>
             !h.fixed &&
+            h.type !== "construction" &&
             h.lane === lane &&
             h.pop >= 1 &&
             Math.abs(h.worldX - mayorX) < REACH &&
@@ -625,12 +664,19 @@ function drawMayor(ctx: CanvasRenderingContext2D, state: FixTheCityRunState) {
     ctx.stroke();
   }
 
-  // Pick the animation frame: idle before the run, clean while patching,
-  // run cycle (faster when dashing) otherwise.
+  // Pick the animation frame: idle before the run, a shovel/jackhammer dig
+  // while patching, else the run cycle. Every sprite already faces forward
+  // (right), so no mirroring is needed.
   let sp: Sprite;
-  if (!playing) sp = SPR.idle;
-  else if (repairing) sp = SPR.clean[Math.floor(state.frame / 6) % SPR.clean.length];
-  else sp = SPR.run[Math.floor(state.frame / (state.boost ? 3 : 5)) % SPR.run.length];
+  if (!playing) {
+    sp = SPR.idle;
+  } else if (repairing) {
+    const haz = state.hazards.find((h) => h.id === state.repairId);
+    const frames = haz && cleaningTool(haz) === "jack" ? JACK_FRAMES : SHOVEL_FRAMES;
+    sp = SPR.clean[frames[Math.floor(state.frame / 6) % frames.length]];
+  } else {
+    sp = SPR.run[Math.floor(state.frame / (state.boost ? 3 : 5)) % SPR.run.length];
+  }
 
   const H = LANE_H * 1.7;
   const footY = cy + LANE_H * 0.36;

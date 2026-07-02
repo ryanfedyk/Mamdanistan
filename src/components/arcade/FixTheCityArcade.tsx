@@ -240,6 +240,7 @@ function InfoContent({ onStart }: { onStart: () => void }) {
         <li>🏃 You&apos;re the Mayor — you jog down the street on your own.</li>
         <li>⬆️⬇️ Swipe up/down (or the buttons) to change lanes.</li>
         <li>🛠️ Line up on a pothole and it patches — a car is racing it from behind.</li>
+        <li>🚧 Cones? Just run through them — you grab those on the fly, no stopping.</li>
         <li>⏩ Hold DASH to sprint ahead and buy space — but you skip potholes while sprinting.</li>
         <li>🚗 Beat the car and the lane flows; lose the race and it jams (📈 gridlock).</li>
         <li>🏁 Finish the shift&apos;s patches before GRIDLOCK maxes out.</li>

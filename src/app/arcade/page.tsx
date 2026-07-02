@@ -2,7 +2,24 @@ import Link from "next/link";
 import { ARCADE_CABINETS } from "@/data/games";
 
 export const metadata = {
-  title: "The Arcade · Mamdanistan",
+  // The root layout appends " · Mamdanistan" via the title template.
+  title: "The Arcade",
+  description:
+    "Democracy is a team sport and the floor is sticky. Pick a cabinet and lower the barrier to civic engagement, one pixel at a time.",
+  alternates: { canonical: "/arcade" },
+  openGraph: {
+    type: "website",
+    url: "/arcade",
+    title: "The Arcade · Mamdanistan",
+    description: "A retro arcade of civic wins. Pick a cabinet, insert an imaginary quarter.",
+    images: [{ url: "/mamdanistan-postcard.webp", width: 1000, height: 652, alt: "Mamdanistan" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Arcade · Mamdanistan",
+    description: "A retro arcade of civic wins. Pick a cabinet, insert an imaginary quarter.",
+    images: ["/mamdanistan-postcard.webp"],
+  },
 };
 
 export default function ArcadePage() {

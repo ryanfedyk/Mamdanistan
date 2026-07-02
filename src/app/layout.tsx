@@ -26,10 +26,34 @@ const terminal = VT323({
   display: "swap",
 });
 
+const SITE_URL = "https://mamdanistan.web.app";
+const SITE_DESC =
+  "The potholes are fixed. The pools are open. Panic accordingly. A tongue-in-cheek civic dashboard and retro arcade tracking New York's material wins.";
+
 export const metadata: Metadata = {
-  title: "Mamdani-stan | Liberation Front",
-  description:
-    "The potholes are fixed. The pools are open. Panic accordingly. A tongue-in-cheek civic dashboard and retro arcade tracking New York's material wins.",
+  metadataBase: new URL(SITE_URL),
+  // Each page sets its own title; the template appends the brand so shared
+  // links and browser tabs read e.g. "Formal Plunge · Mamdanistan".
+  title: {
+    default: "Mamdani-stan | Liberation Front",
+    template: "%s · Mamdanistan",
+  },
+  description: SITE_DESC,
+  applicationName: "Mamdanistan",
+  openGraph: {
+    type: "website",
+    siteName: "Mamdanistan",
+    url: SITE_URL,
+    title: "Mamdani-stan | Liberation Front",
+    description: SITE_DESC,
+    images: [{ url: "/mamdanistan-postcard.webp", width: 1000, height: 652, alt: "Mamdanistan" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mamdani-stan | Liberation Front",
+    description: SITE_DESC,
+    images: ["/mamdanistan-postcard.webp"],
+  },
 };
 
 export const viewport: Viewport = {

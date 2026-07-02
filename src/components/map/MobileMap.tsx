@@ -27,6 +27,13 @@ const LEGEND: Array<{ cat: WinCategory; label: string }> = [
   { cat: "infrastructure", label: "Infra" },
   { cat: "housing", label: "Housing" },
   { cat: "transit", label: "Transit" },
+  { cat: "labor", label: "Labor" },
+  { cat: "health", label: "Health" },
+  { cat: "food", label: "Food" },
+  { cat: "climate", label: "Climate" },
+  { cat: "consumer", label: "Consumer" },
+  { cat: "campaign", label: "Campaign" },
+  { cat: "culture", label: "Culture" },
 ];
 
 type Pointers = Map<number, { x: number; y: number }>;

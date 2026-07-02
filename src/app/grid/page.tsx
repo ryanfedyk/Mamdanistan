@@ -25,7 +25,13 @@ const LEGEND: Array<{ cat: WinCategory; label: string }> = [
   { cat: "infrastructure", label: "Infrastructure" },
   { cat: "housing", label: "Housing" },
   { cat: "transit", label: "Transit" },
-  { cat: "parks", label: "Parks" },
+  { cat: "labor", label: "Labor" },
+  { cat: "health", label: "Health" },
+  { cat: "food", label: "Food" },
+  { cat: "climate", label: "Climate" },
+  { cat: "consumer", label: "Consumer" },
+  { cat: "campaign", label: "Campaign" },
+  { cat: "culture", label: "Culture" },
 ];
 
 export default function GridPage() {

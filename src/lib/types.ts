@@ -30,7 +30,14 @@ export type WinCategory =
   | "infrastructure" // potholes, bridges, bike lanes
   | "housing" // material wins for tenants
   | "transit" // buses, ferries, fare relief
-  | "parks"; // green space, public commons
+  | "parks" // green space, public commons
+  | "labor" // wages, workers, jobs
+  | "health" // clinics, meds, copays
+  | "food" // groceries, food access
+  | "climate" // energy, resilience, green upgrades
+  | "consumer" // fees, pricing, consumer protection
+  | "campaign" // field, fundraising, electoral milestones
+  | "culture"; // cultural + civic moments
 
 /** A press clip, news article, or policy metric attached to a win. */
 export interface PinReference {
@@ -61,6 +68,8 @@ export interface MapPin {
   /** Human-readable neighborhood, e.g. "East Harlem". */
   neighborhood: string;
   category: WinCategory;
+  /** Governance win vs. campaign / cultural moment. */
+  kind?: "policy" | "moment";
   /** Optional real-world geo point (legacy; the illustrated map uses mapPosition). */
   coordinates?: LatLng;
   /**

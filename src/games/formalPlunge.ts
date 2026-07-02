@@ -317,19 +317,27 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
 
     drawScene(ctx, state);
     if (state.finishX !== null) drawFinish(ctx, state.finishX, state.frame);
-    for (const o of state.obstacles) drawBillionaire(ctx, o, state.frame);
 
+    // Depth-sort swimmers by vertical position: whoever is lower in the pool
+    // (larger y = nearer the camera) draws on top, so Mamdani correctly passes
+    // in front of / behind the billionaires.
     const d = state.diver;
-    if (state.mode === "dive" || state.phase === "attract") {
-      drawZohran(ctx, diveFrameName(state), d.x, d.y);
-    } else if (state.phase === "won") {
-      drawZohran(ctx, "win", d.x, d.y);
-    } else {
+    let pose: Pose;
+    if (state.mode === "dive" || state.phase === "attract") pose = diveFrameName(state);
+    else if (state.phase === "won") pose = "win";
+    else {
       const cycle = ["swim1", "swim2", "swim3", "swim4"] as const;
-      const name =
-        state.phase === "gameover" ? "lose" : cycle[Math.floor(state.frame / 7) % 4];
-      drawZohran(ctx, name, d.x, d.y);
+      pose = state.phase === "gameover" ? "lose" : cycle[Math.floor(state.frame / 7) % 4];
     }
+    const drawables: Array<{ y: number; draw: () => void }> = [
+      { y: d.y, draw: () => drawZohran(ctx, pose, d.x, d.y) },
+      ...state.obstacles.map((o) => ({
+        y: billY(o, state.frame),
+        draw: () => drawBillionaire(ctx, o, state.frame),
+      })),
+    ];
+    drawables.sort((a, b) => a.y - b.y);
+    for (const e of drawables) e.draw();
     ctx.restore();
 
     // HUD.

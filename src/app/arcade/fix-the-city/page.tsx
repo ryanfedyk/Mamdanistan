@@ -47,16 +47,20 @@ export default function FixTheCityPage() {
       </h1>
 
       <div className="space-y-6">
-        <GameCanvas
-          engine={fixTheCity}
-          width={FIX_THE_CITY_DIMENSIONS.width}
-          height={FIX_THE_CITY_DIMENSIONS.height}
-          keyMap={KEY_MAP}
-          controls="dpad"
-          accentColor="#FF6B35"
-          fluid
-          tapToStart
-        />
+        {/* Tall portrait board — a phone-shaped column that fills the width on
+            mobile and stays a readable column on desktop. */}
+        <div className="mx-auto w-full max-w-[420px]">
+          <GameCanvas
+            engine={fixTheCity}
+            width={FIX_THE_CITY_DIMENSIONS.width}
+            height={FIX_THE_CITY_DIMENSIONS.height}
+            keyMap={KEY_MAP}
+            controls="dpad"
+            accentColor="#FF6B35"
+            fluid
+            tapToStart
+          />
+        </div>
 
         <aside className="panel space-y-3 px-5 py-4">
           <p className="font-pixel text-[8px] uppercase text-mamdani-cyan">

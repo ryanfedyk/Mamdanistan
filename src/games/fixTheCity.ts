@@ -23,36 +23,40 @@ import type {
 
 /* ------------------------------------------------------------------ *
  * Tunables — nudge these while validating difficulty.
+ * Portrait board: tall & long for mobile. Move UP the screen (Frogger).
  * ------------------------------------------------------------------ */
 const CELL = 40;
-const COLS = 14;
-const ROWS = 9;
-const WIDTH = COLS * CELL; // 560
-const HEIGHT = ROWS * CELL; // 360
+const COLS = 9;
+const ROWS = 13;
+const WIDTH = COLS * CELL; // 360
+const HEIGHT = ROWS * CELL; // 520
 
-const START_COL = 7;
-const START_ROW = 8; // depot (bottom safe row)
+const START_COL = 4;
+const START_ROW = 12; // depot (bottom safe row)
 
-const START_TIME = 46; // seconds on the clock
+const START_TIME = 45; // seconds on the clock
 const QUOTA = 12; // repairs required to win
 const MAX_ACTIVE = 4; // hazards on the board at once
 const INITIAL_HAZARDS = 3; // jobs already waiting at kickoff
-const SPAWN_INTERVAL = 1.1; // seconds between pop-ups
+const SPAWN_INTERVAL = 1.2; // seconds between pop-ups
 const POP_TIME = 0.22; // hazard rise animation (seconds)
 const FIX_SCORE = 25;
 const TIME_BONUS = 5; // score per leftover second on win
-const INVULN_TIME = 1.2; // seconds of blink after a hit
+const INVULN_TIME = 1.4; // seconds of blink after a hit
 const HIT_PENALTY = 2; // seconds lost when a car clips you
 
-/* Traffic lanes: which rows carry cars, and how fast / which way.
- * Rows 0 (sidewalk), 4 (median) and 8 (depot) are safe. */
+/* Traffic lanes: which rows carry cars, and how fast / which way. Safe rows
+ * (0 sidewalk, 12 depot, and the medians at 3/6/9) carry none — they're the
+ * rest stops between pairs of lanes. */
 const LANES: Array<{ row: number; dir: 1 | -1; speed: number; gap: number; w: number }> = [
-  { row: 1, dir: 1, speed: 70, gap: 200, w: 62 },
-  { row: 2, dir: -1, speed: 95, gap: 170, w: 54 },
-  { row: 3, dir: 1, speed: 120, gap: 210, w: 70 },
-  { row: 5, dir: -1, speed: 85, gap: 180, w: 58 },
-  { row: 6, dir: 1, speed: 110, gap: 160, w: 50 },
-  { row: 7, dir: -1, speed: 140, gap: 230, w: 66 },
+  { row: 1, dir: 1, speed: 60, gap: 190, w: 58 },
+  { row: 2, dir: -1, speed: 72, gap: 165, w: 52 },
+  { row: 4, dir: 1, speed: 66, gap: 200, w: 62 },
+  { row: 5, dir: -1, speed: 84, gap: 150, w: 50 },
+  { row: 7, dir: 1, speed: 58, gap: 185, w: 60 },
+  { row: 8, dir: -1, speed: 90, gap: 160, w: 54 },
+  { row: 10, dir: 1, speed: 70, gap: 175, w: 56 },
+  { row: 11, dir: -1, speed: 80, gap: 200, w: 64 },
 ];
 
 const HAZARD_TYPES: CityHazardType[] = [
@@ -65,6 +69,16 @@ const HAZARD_TYPES: CityHazardType[] = [
 
 const isRoad = (row: number) => LANES.some((l) => l.row === row);
 const laneDir = (row: number) => LANES.find((l) => l.row === row)?.dir ?? 1;
+
+/** Nearest safe row to retreat to after a hit — prefers the median just
+ *  below (toward the depot) so a clip costs a lane, not the whole climb. */
+function nearestSafeRow(row: number): number {
+  for (let d = 0; d < ROWS; d++) {
+    if (row + d < ROWS && !isRoad(row + d)) return row + d;
+    if (row - d >= 0 && !isRoad(row - d)) return row - d;
+  }
+  return START_ROW;
+}
 
 /* ------------------------------------------------------------------ *
  * World seeding
@@ -123,14 +137,13 @@ function startState(): FixTheCityState {
 
 /** A couple of demo jobs so the attract screen shows the concept. */
 function demoHazards(): CityHazard[] {
-  const spots: Array<[number, CityHazardType]> = [
-    [2, "pothole"],
-    [9, "construction"],
-    [5, "debris"],
-    [11, "hydrant"],
+  const spots: Array<[number, number, CityHazardType]> = [
+    [2, 1, "pothole"],
+    [6, 4, "construction"],
+    [3, 8, "debris"],
+    [7, 11, "hydrant"],
   ];
-  const rows = [1, 3, 6, 7];
-  return spots.map(([col, type], i) => ({ col, row: rows[i], type, pop: 1 }));
+  return spots.map(([col, row, type]) => ({ col, row, type, pop: 1 }));
 }
 
 /* ------------------------------------------------------------------ *
@@ -255,8 +268,8 @@ export const fixTheCity: GameEngine<FixTheCityState> = {
         hits += 1;
         invuln = INVULN_TIME;
         timeLeft -= HIT_PENALTY;
-        col = START_COL;
-        row = START_ROW;
+        // Bump back to the nearest safe median (keep your column).
+        row = nearestSafeRow(row);
       }
     }
 
@@ -302,11 +315,14 @@ export const fixTheCity: GameEngine<FixTheCityState> = {
         ctx.strokeStyle = "rgba(61,220,151,0.30)";
         ctx.lineWidth = 1;
         ctx.strokeRect(0.5, y + 0.5, WIDTH - 1, CELL - 1);
-        const label = r === 0 ? "SIDEWALK" : r === 4 ? "MEDIAN" : "DEPOT";
-        ctx.fillStyle = "rgba(61,220,151,0.45)";
-        ctx.font = "8px monospace";
-        ctx.textAlign = "center";
-        ctx.fillText(label, WIDTH / 2, y + CELL / 2 + 3);
+        // Only the ends are labelled; the medians read as plain rest stops.
+        const label = r === 0 ? "SIDEWALK" : r === ROWS - 1 ? "DEPOT" : "";
+        if (label) {
+          ctx.fillStyle = "rgba(61,220,151,0.45)";
+          ctx.font = "8px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(label, WIDTH / 2, y + CELL / 2 + 3);
+        }
       }
     }
 

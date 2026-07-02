@@ -235,6 +235,10 @@ export interface FixTheCityState extends BaseGameState {
   spawnTimer: number;
   /** Traffic-flow variant: city gridlock pressure, 0–100 (100 = seized up). */
   gridlock?: number;
+  /** Traffic-flow variant: 0→1 progress fixing the hazard under the crew. */
+  repairT?: number;
+  /** Traffic-flow variant: seconds of movement stun after a car bump. */
+  stun?: number;
 }
 
 /**

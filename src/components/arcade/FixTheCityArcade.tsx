@@ -226,7 +226,7 @@ function InfoContent({ onStart }: { onStart: () => void }) {
     <div className="space-y-3 px-4 py-3">
       <div>
         <p className="font-pixel text-[8px] uppercase text-mamdani-cyan">
-          ⚠ Wireframe prototype — art incoming
+          Mayor Mamdani · pothole patrol
         </p>
         <h2 className="pixel-heading text-base text-mamdani-ember">Fix the City</h2>
       </div>
@@ -246,7 +246,7 @@ function InfoContent({ onStart }: { onStart: () => void }) {
       </ul>
       <div className="space-y-1 border-t border-mamdani-steel/40 pt-3 font-terminal text-base text-mamdani-fog/80">
         <p className="font-pixel text-[8px] uppercase text-mamdani-fog">Hazard key</p>
-        <p>🕳️ pothole · 🚧 construction · 🪨 debris · 🚒 hydrant · 🚦 signal</p>
+        <p>🕳️ potholes · 🚧 cones · 🪨 debris &amp; crumbling asphalt</p>
       </div>
     </div>
   );

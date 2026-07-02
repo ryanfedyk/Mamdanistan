@@ -16,7 +16,9 @@ import type { BaseGameState, CityHazardType, GameEngine } from "@/lib/types";
  * race; dawdling (or juggling too many at once) loses it. No twitch death —
  * the pressure is the rolling deadline + the meter. Controls: UP / DOWN.
  *
- * Wireframe build — vectors only.
+ * Rendered with the pixel-art sprite set in /public/sprites/ftc (Mayor
+ * run/clean/idle cycles, pothole/debris/cone obstacles, vehicle chasers, and
+ * road / sidewalk / skyline tiles), with vector fallbacks until they load.
  */
 
 /* ------------------------------------------------------------------ *
@@ -59,6 +61,88 @@ const HAZARD_TYPES: CityHazardType[] = [
   "hydrant",
   "signal",
 ];
+
+/* ------------------------------------------------------------------ *
+ * Sprite loading (browser-only; vectors draw until an image is ready)
+ * ------------------------------------------------------------------ */
+interface Sprite {
+  img: HTMLImageElement | null;
+  ready: boolean;
+}
+const SPRITE_BASE = "/sprites/ftc/";
+function loadSprite(name: string): Sprite {
+  const sp: Sprite = { img: null, ready: false };
+  if (typeof window !== "undefined") {
+    const img = new Image();
+    img.onload = () => {
+      sp.ready = true;
+    };
+    img.src = `${SPRITE_BASE}${name}.png`;
+    sp.img = img;
+  }
+  return sp;
+}
+const loadSet = (base: string, n: number) =>
+  Array.from({ length: n }, (_, i) => loadSprite(`${base}${i}`));
+
+const SPR = {
+  run: loadSet("mayor_run_", 8),
+  clean: loadSet("mayor_clean_", 6),
+  idle: loadSprite("mayor_idle"),
+  road: loadSprite("tile_road"),
+  sidewalk: loadSprite("tile_sidewalk"),
+  skyline: loadSprite("tile_skyline"),
+  potholes: [loadSprite("pothole_sm"), loadSprite("pothole_md"), loadSprite("pothole_lg")],
+  crumble: loadSprite("crumble"),
+  debris: loadSprite("debris"),
+  cone: loadSprite("cone"),
+  vehicles: [
+    loadSprite("car_red"),
+    loadSprite("car_blue"),
+    loadSprite("car_yellow"),
+    loadSprite("pickup"),
+    loadSprite("truck"),
+  ],
+};
+
+/** The obstacle sprite a given hazard shows (potholes vary by id for texture). */
+function hazardSprite(h: RunHazard): Sprite {
+  switch (h.type) {
+    case "construction":
+      return SPR.cone;
+    case "debris":
+      return SPR.debris;
+    case "hydrant":
+      return SPR.crumble;
+    case "signal":
+      return SPR.potholes[2];
+    default:
+      return SPR.potholes[h.id % 2]; // sm / md
+  }
+}
+
+/** Draw a sprite scaled to a target height, centred at (cx, cy). Returns false
+ *  if the image isn't loaded yet so the caller can fall back to vectors. */
+function blit(
+  ctx: CanvasRenderingContext2D,
+  sp: Sprite,
+  cx: number,
+  cy: number,
+  targetH: number,
+  opts: { anchorBottom?: boolean; flip?: boolean; alpha?: number } = {},
+): boolean {
+  if (!sp.ready || !sp.img) return false;
+  const img = sp.img;
+  const scale = targetH / img.height;
+  const w = img.width * scale;
+  ctx.save();
+  if (opts.alpha !== undefined) ctx.globalAlpha = opts.alpha;
+  ctx.translate(cx, cy);
+  if (opts.flip) ctx.scale(-1, 1);
+  ctx.drawImage(img, -w / 2, opts.anchorBottom ? -targetH : -targetH / 2, w, targetH);
+  ctx.restore();
+  return true;
+}
 
 /* ------------------------------------------------------------------ *
  * State
@@ -312,38 +396,7 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
   render(ctx, state) {
     const cam = state.mayorX - PX;
 
-    ctx.fillStyle = "#0B0E1A";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    ctx.fillStyle = "rgba(33,212,253,0.05)";
-    ctx.fillRect(0, 0, WIDTH, ROAD_TOP);
-    drawSkyline(ctx, cam);
-
-    ctx.fillStyle = "rgba(255,255,255,0.03)";
-    ctx.fillRect(0, ROAD_TOP, WIDTH, ROAD_BOT - ROAD_TOP);
-    ctx.fillStyle = "rgba(61,220,151,0.08)";
-    ctx.fillRect(0, ROAD_BOT, WIDTH, HEIGHT - ROAD_BOT);
-    ctx.strokeStyle = "rgba(61,220,151,0.30)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, ROAD_TOP + 0.5);
-    ctx.lineTo(WIDTH, ROAD_TOP + 0.5);
-    ctx.stroke();
-    drawSidewalk(ctx, cam);
-
-    // Scrolling lane dividers convey motion.
-    ctx.strokeStyle = "rgba(255,210,63,0.22)";
-    ctx.lineWidth = 2;
-    for (let l = 1; l < LANES; l++) {
-      const y = ROAD_TOP + LANE_H * l;
-      ctx.setLineDash([16, 14]);
-      ctx.lineDashOffset = -(cam % 30);
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(WIDTH, y);
-      ctx.stroke();
-    }
-    ctx.setLineDash([]);
-    ctx.lineDashOffset = 0;
+    drawBackground(ctx, cam);
 
     for (const c of state.cars) drawCar(ctx, c, cam);
     for (const h of state.hazards) drawHazard(ctx, h, cam);
@@ -376,264 +429,221 @@ function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h
   ctx.closePath();
 }
 
-function drawSkyline(ctx: CanvasRenderingContext2D, cam: number) {
-  // Back row (slow parallax).
-  ctx.strokeStyle = "rgba(154,167,199,0.12)";
-  ctx.lineWidth = 1;
-  let off = (cam * 0.25) % 74;
-  for (let i = -1; i < WIDTH / 74 + 1; i++) {
-    const x = i * 74 - off;
-    const h = 70 + ((i * 53) % 6) * 12;
-    ctx.strokeRect(x + 8, ROAD_TOP - h, 58, h);
+/** Tile a texture across a rectangle, scrolling horizontally with the camera. */
+function tileRegion(
+  ctx: CanvasRenderingContext2D,
+  sp: Sprite,
+  x0: number,
+  y0: number,
+  w: number,
+  h: number,
+  cam: number,
+  tile: number,
+  parallax = 1,
+): boolean {
+  if (!sp.ready || !sp.img) return false;
+  const img = sp.img;
+  const th = tile;
+  const tw = img.width * (tile / img.height);
+  let ox = (cam * parallax) % tw;
+  if (ox < 0) ox += tw;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x0, y0, w, h);
+  ctx.clip();
+  // Base tile index so the flip pattern stays stable as the road scrolls.
+  const baseCol = Math.floor((cam * parallax) / tw);
+  let row = 0;
+  for (let y = y0; y < y0 + h; y += th, row++) {
+    let col = baseCol;
+    for (let x = x0 - ox; x < x0 + w; x += tw, col++) {
+      // Mirror alternate tiles so the texture doesn't read as a regular grid.
+      const fx = (row + col) % 2 === 0 ? 1 : -1;
+      ctx.save();
+      ctx.translate(x + tw / 2, y + th / 2);
+      ctx.scale(fx, 1);
+      ctx.drawImage(img, -tw / 2, -th / 2, tw, th);
+      ctx.restore();
+    }
   }
-  // Front row (faster parallax + windows).
+  ctx.restore();
+  return true;
+}
+
+/** Parallax skyline from the sprite (far + near passes); false ⇒ use vectors. */
+function drawSkylineSprite(ctx: CanvasRenderingContext2D, cam: number): boolean {
+  const sp = SPR.skyline;
+  if (!sp.ready || !sp.img) return false;
+  const img = sp.img;
+  const pass = (h: number, par: number, alpha: number) => {
+    const tw = img.width * (h / img.height);
+    let off = (cam * par) % tw;
+    if (off < 0) off += tw;
+    ctx.globalAlpha = alpha;
+    for (let x = -off; x < WIDTH; x += tw) ctx.drawImage(img, x, ROAD_TOP - h, tw, h);
+    ctx.globalAlpha = 1;
+  };
+  pass(104, 0.14, 0.45); // distant skyline
+  pass(132, 0.34, 1); // near skyline
+  return true;
+}
+
+function drawBackground(ctx: CanvasRenderingContext2D, cam: number) {
+  // Dusk sky behind the skyline.
+  const sky = ctx.createLinearGradient(0, 0, 0, ROAD_TOP);
+  sky.addColorStop(0, "#101a30");
+  sky.addColorStop(1, "#23395f");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, WIDTH, ROAD_TOP);
+  if (!drawSkylineSprite(ctx, cam)) drawSkylineVector(ctx, cam);
+
+  // Asphalt road.
+  if (!tileRegion(ctx, SPR.road, 0, ROAD_TOP, WIDTH, ROAD_BOT - ROAD_TOP, cam, 84)) {
+    ctx.fillStyle = "#39342b";
+    ctx.fillRect(0, ROAD_TOP, WIDTH, ROAD_BOT - ROAD_TOP);
+  }
+  // Scrolling dashed lane dividers convey motion.
+  ctx.strokeStyle = "rgba(255,214,90,0.75)";
+  ctx.lineWidth = 3;
+  for (let l = 1; l < LANES; l++) {
+    const y = ROAD_TOP + LANE_H * l;
+    ctx.setLineDash([20, 16]);
+    ctx.lineDashOffset = -(cam % 36);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(WIDTH, y);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
+
+  // Curb + sidewalk band below the road.
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  ctx.fillRect(0, ROAD_BOT - 3, WIDTH, 4);
+  if (!tileRegion(ctx, SPR.sidewalk, 0, ROAD_BOT, WIDTH, HEIGHT - ROAD_BOT, cam, HEIGHT - ROAD_BOT)) {
+    ctx.fillStyle = "#c9b596";
+    ctx.fillRect(0, ROAD_BOT, WIDTH, HEIGHT - ROAD_BOT);
+  }
+}
+
+/** Vector skyline — only used until the sprite backdrop finishes loading. */
+function drawSkylineVector(ctx: CanvasRenderingContext2D, cam: number) {
   ctx.strokeStyle = "rgba(154,167,199,0.22)";
-  off = (cam * 0.5) % 62;
+  ctx.lineWidth = 1;
+  const off = (cam * 0.5) % 62;
   for (let i = -1; i < WIDTH / 62 + 1; i++) {
     const x = i * 62 - off;
     const h = 44 + ((i * 37) % 5) * 10;
     ctx.strokeRect(x + 6, ROAD_TOP - h, 48, h);
-    ctx.fillStyle = "rgba(255,210,63,0.10)";
-    for (let wy = ROAD_TOP - h + 8; wy < ROAD_TOP - 8; wy += 14) {
-      for (let wx = x + 12; wx < x + 46; wx += 12) ctx.fillRect(wx, wy, 5, 6);
-    }
-  }
-}
-
-function drawSidewalk(ctx: CanvasRenderingContext2D, cam: number) {
-  // Curb.
-  ctx.strokeStyle = "rgba(61,220,151,0.35)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(0, ROAD_BOT + 1);
-  ctx.lineTo(WIDTH, ROAD_BOT + 1);
-  ctx.stroke();
-  // Paving joints scroll with the street.
-  ctx.strokeStyle = "rgba(61,220,151,0.16)";
-  ctx.lineWidth = 1;
-  const off = cam % 40;
-  for (let x = -off; x < WIDTH; x += 40) {
-    ctx.beginPath();
-    ctx.moveTo(x, ROAD_BOT + 6);
-    ctx.lineTo(x, HEIGHT);
-    ctx.stroke();
-  }
-  // A few onlookers cheering the Mayor on.
-  ctx.fillStyle = "rgba(154,167,199,0.4)";
-  const poff = (cam * 0.9) % 56;
-  for (let x = -poff; x < WIDTH; x += 56) {
-    const py = ROAD_BOT + 44;
-    ctx.beginPath();
-    ctx.arc(x + 20, py, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillRect(x + 16, py + 5, 8, 14);
   }
 }
 
 function drawCar(ctx: CanvasRenderingContext2D, c: RunCar, cam: number) {
   const sx = c.worldX - cam;
-  if (sx < -CAR_W || sx > WIDTH + CAR_W) return;
-  const h = LANE_H * 0.58;
-  const top = laneY(c.lane) - h / 2;
-  const left = sx - CAR_W / 2;
-  const color = c.crashed ? "#FF2E4D" : "#FFB454";
-  rrect(ctx, left, top, CAR_W, h, 7);
-  ctx.fillStyle = c.crashed ? "rgba(255,46,77,0.18)" : "rgba(255,180,84,0.12)";
-  ctx.fill();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.fillStyle = color;
-  ctx.fillRect(left + CAR_W - 4, top + 4, 3, 3);
-  ctx.fillRect(left + CAR_W - 4, top + h - 7, 3, 3);
+  if (sx < -80 || sx > WIDTH + 80) return;
+  const cy = laneY(c.lane);
+  const veh = SPR.vehicles[c.hazId % SPR.vehicles.length];
+  const h = LANE_H * 0.95;
+  // A crashed car flashes a red alarm box behind it.
+  if (c.crashed && Math.floor(Date.now() / 180) % 2 === 0) {
+    ctx.fillStyle = "rgba(255,46,77,0.35)";
+    rrect(ctx, sx - 34, cy - h / 2 - 4, 68, h + 8, 6);
+    ctx.fill();
+  }
+  if (!blit(ctx, veh, sx, cy + 4, h, {})) {
+    const top = cy - h / 2;
+    ctx.fillStyle = c.crashed ? "#FF2E4D" : "#FFB454";
+    rrect(ctx, sx - CAR_W / 2, top, CAR_W, h, 7);
+    ctx.fill();
+  }
 }
-
-type HazardMeta = { color: string; icon: (ctx: CanvasRenderingContext2D) => void };
-const HAZARD_META: Record<CityHazardType, HazardMeta> = {
-  pothole: {
-    color: "#21D4FD",
-    icon: (ctx) => {
-      ctx.setLineDash([3, 3]);
-      ctx.strokeStyle = "#21D4FD";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 10, 7, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = "rgba(0,0,0,0.55)";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 6, 4, 0, 0, Math.PI * 2);
-      ctx.fill();
-    },
-  },
-  construction: {
-    color: "#FF6B35",
-    icon: (ctx) => {
-      ctx.strokeStyle = "#FF6B35";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, -11);
-      ctx.lineTo(9, 10);
-      ctx.lineTo(-9, 10);
-      ctx.closePath();
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-5, 0);
-      ctx.lineTo(5, 0);
-      ctx.stroke();
-    },
-  },
-  debris: {
-    color: "#9AA7C7",
-    icon: (ctx) => {
-      ctx.strokeStyle = "#9AA7C7";
-      ctx.lineWidth = 2;
-      const rock = (ox: number, oy: number, s: number) => {
-        ctx.beginPath();
-        ctx.moveTo(ox - s, oy + s);
-        ctx.lineTo(ox, oy - s);
-        ctx.lineTo(ox + s, oy + s);
-        ctx.closePath();
-        ctx.stroke();
-      };
-      rock(-5, 3, 4);
-      rock(6, 5, 3);
-      rock(2, -3, 4);
-    },
-  },
-  hydrant: {
-    color: "#FF4D6D",
-    icon: (ctx) => {
-      ctx.strokeStyle = "#FF4D6D";
-      ctx.lineWidth = 2;
-      rrect(ctx, -5, -8, 10, 16, 3);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-8, -2);
-      ctx.lineTo(8, -2);
-      ctx.moveTo(0, -8);
-      ctx.lineTo(0, -12);
-      ctx.stroke();
-    },
-  },
-  signal: {
-    color: "#FFD23F",
-    icon: (ctx) => {
-      ctx.strokeStyle = "#FFD23F";
-      ctx.lineWidth = 1.5;
-      rrect(ctx, -5, -12, 10, 24, 4);
-      ctx.stroke();
-      const lights: Array<[number, string]> = [
-        [-7, "#FF4D6D"],
-        [0, "#FFD23F"],
-        [7, "#3DDC97"],
-      ];
-      for (const [oy, col] of lights) {
-        ctx.fillStyle = col;
-        ctx.beginPath();
-        ctx.arc(0, oy, 2.4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    },
-  },
-};
 
 function drawHazard(ctx: CanvasRenderingContext2D, h: RunHazard, cam: number) {
   const sx = h.worldX - cam;
-  if (sx < -30 || sx > WIDTH + 30) return;
+  if (sx < -40 || sx > WIDTH + 40) return;
   const cy = laneY(h.lane);
-  const s = h.pop < 1 ? 1 - (1 - h.pop) * (1 - h.pop) : 1;
-  ctx.save();
-  ctx.translate(sx, cy);
-  ctx.scale(s, s);
-  const box = Math.min(LANE_H - 8, 34);
-  rrect(ctx, -box / 2, -box / 2, box, box, 6);
+  const pop = h.pop < 1 ? 1 - (1 - h.pop) * (1 - h.pop) : 1;
+  const sp = hazardSprite(h);
+  // Cones/crumbles read as taller props; potholes lie flat on the road.
+  const tall = h.type === "construction" || h.type === "hydrant";
+  const th = (tall ? LANE_H * 0.9 : LANE_H * 0.66) * pop;
+
   if (h.fixed) {
-    ctx.fillStyle = "rgba(61,220,151,0.18)";
-    ctx.fill();
+    // Patched — the obstacle fades out under a fresh green check.
+    blit(ctx, sp, sx, cy, tall ? LANE_H * 0.9 : LANE_H * 0.66, {
+      anchorBottom: tall,
+      alpha: 0.22,
+    });
     ctx.strokeStyle = "#3DDC97";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.strokeStyle = "#3DDC97";
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(-6, 0);
-    ctx.lineTo(-1, 5);
-    ctx.lineTo(7, -5);
+    ctx.moveTo(sx - 8, cy);
+    ctx.lineTo(sx - 2, cy + 6);
+    ctx.lineTo(sx + 9, cy - 7);
     ctx.stroke();
-  } else {
-    const meta = HAZARD_META[h.type];
-    ctx.fillStyle = "rgba(255,46,77,0.10)";
-    ctx.fill();
-    ctx.strokeStyle = meta.color;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    meta.icon(ctx);
+    return;
   }
-  ctx.restore();
+
+  if (!blit(ctx, sp, sx, cy, th, { anchorBottom: tall })) {
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.beginPath();
+    ctx.ellipse(sx, cy, 12 * pop, 8 * pop, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawMayor(ctx: CanvasRenderingContext2D, state: FixTheCityRunState) {
   const cx = PX;
   const cy = laneY(state.laneY);
   const repairing = (state.repairT ?? 0) > 0;
+  const playing = state.phase === "playing";
 
   // Speed lines when dashing.
   if (state.boost) {
-    ctx.strokeStyle = "rgba(255,210,63,0.5)";
+    ctx.strokeStyle = "rgba(255,214,90,0.6)";
     ctx.lineWidth = 2;
     for (let i = 0; i < 3; i++) {
-      const yy = cy - 8 + i * 8;
+      const yy = cy - 6 + i * 8;
       const wob = ((state.frame * 6 + i * 13) % 18) - 9;
       ctx.beginPath();
-      ctx.moveTo(cx - 16 - wob, yy);
-      ctx.lineTo(cx - 30 - wob, yy);
+      ctx.moveTo(cx - 26 - wob, yy);
+      ctx.lineTo(cx - 44 - wob, yy);
       ctx.stroke();
     }
   }
 
+  // Repair progress ring under the Mayor while patching.
   if (repairing) {
     ctx.strokeStyle = "rgba(61,220,151,0.35)";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 22, 0, Math.PI * 2);
     ctx.stroke();
     ctx.strokeStyle = "#3DDC97";
     ctx.beginPath();
-    ctx.arc(cx, cy, 18, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (state.repairT ?? 0));
+    ctx.arc(cx, cy, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (state.repairT ?? 0));
     ctx.stroke();
   }
 
-  const bob = repairing ? 0 : Math.sin(state.frame * 0.4) * 2;
-  ctx.save();
-  ctx.translate(cx, cy + bob);
-  ctx.fillStyle = "rgba(255,107,53,0.22)";
-  ctx.strokeStyle = "#FF6B35";
-  ctx.lineWidth = 2.5;
-  rrect(ctx, -7, -6, 14, 16, 4);
-  ctx.fill();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, -12, 5, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.strokeStyle = "#FFD23F";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(-6, -14);
-  ctx.lineTo(6, -14);
-  ctx.moveTo(-4, -14);
-  ctx.arc(0, -14, 4, Math.PI, 0, true);
-  ctx.stroke();
-  ctx.strokeStyle = "#FF6B35";
-  ctx.lineWidth = 2;
-  const swing = repairing ? 0 : Math.sin(state.frame * 0.4) * 4;
-  ctx.beginPath();
-  ctx.moveTo(-2, 10);
-  ctx.lineTo(-2 - swing, 18);
-  ctx.moveTo(2, 10);
-  ctx.lineTo(2 + swing, 18);
-  ctx.stroke();
-  ctx.restore();
+  // Pick the animation frame: idle before the run, clean while patching,
+  // run cycle (faster when dashing) otherwise.
+  let sp: Sprite;
+  if (!playing) sp = SPR.idle;
+  else if (repairing) sp = SPR.clean[Math.floor(state.frame / 6) % SPR.clean.length];
+  else sp = SPR.run[Math.floor(state.frame / (state.boost ? 3 : 5)) % SPR.run.length];
+
+  const H = LANE_H * 1.7;
+  const footY = cy + LANE_H * 0.36;
+  if (!blit(ctx, sp, cx, footY, H, { anchorBottom: true })) {
+    // Simple fallback body until the sprite loads.
+    ctx.fillStyle = "#FF6B35";
+    rrect(ctx, cx - 7, cy - 6, 14, 16, 4);
+    ctx.fill();
+    ctx.fillStyle = "#FFD23F";
+    ctx.beginPath();
+    ctx.arc(cx, cy - 12, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawHud(ctx: CanvasRenderingContext2D, state: FixTheCityRunState) {

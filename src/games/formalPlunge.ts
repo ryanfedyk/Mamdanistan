@@ -249,7 +249,9 @@ export const formalPlunge: GameEngine<FormalPlungeState> = {
           poolsUnlocked,
           obstacles: kept,
           bgScroll,
-          finishX: SWIM_X,
+          // Park the finish line to Mamdani's left (he's just crossed it) so he
+          // celebrates on open water instead of sitting on top of the pole.
+          finishX: SWIM_X - 52,
           diver: { x, y, vy },
         };
       }

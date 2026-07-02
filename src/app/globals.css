@@ -25,6 +25,15 @@
     user-select: none;
     touch-action: manipulation;
   }
+
+  /* Scrollable but with the native scrollbars hidden (drag-to-pan surfaces). */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @layer components {

@@ -311,10 +311,11 @@ export function MobileMap() {
         )}
       </aside>
 
-      {/* Map region — framed to a centered column so wide monitors don't blow
-          the map up to full-bleed (which zoomed in disorientingly far). */}
+      {/* Map region — framed to a capped column, hugging the panel on its left
+          so there's no gap between them; wide monitors get an orange gutter on
+          the right rather than a blown-up full-bleed map. */}
       <div className="relative min-w-0 flex-1">
-        <div className="relative mx-auto h-full w-full max-w-[720px]">
+        <div className="relative h-full w-full max-w-[900px]">
           {/* Map surface — custom pan/pinch; native gestures off. */}
           <div
             ref={scrollRef}
@@ -322,7 +323,7 @@ export function MobileMap() {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            className={`h-full w-full touch-none overflow-auto ${
+            className={`no-scrollbar h-full w-full touch-none overflow-auto ${
               plotMode ? "" : "cursor-grab active:cursor-grabbing"
             }`}
           >

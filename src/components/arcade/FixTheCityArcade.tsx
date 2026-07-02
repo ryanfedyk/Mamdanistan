@@ -76,6 +76,10 @@ export function FixTheCityArcade({
       KeyW: "up",
       ArrowDown: "down",
       KeyS: "down",
+      ArrowRight: "boost",
+      KeyD: "boost",
+      ShiftLeft: "boost",
+      ShiftRight: "boost",
       Space: "start",
       Enter: "start",
     };
@@ -87,8 +91,15 @@ export function FixTheCityArcade({
       if (intent === "start") setInfoOpen(false);
       send(intent);
     };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (map[e.code] === "boost") send("boostoff");
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKeyUp);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine]);
 
@@ -155,11 +166,25 @@ export function FixTheCityArcade({
         />
       </div>
 
-      {/* Lane controls */}
+      {/* Lane + dash controls */}
       <div className="px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
         <div className="mx-auto flex max-w-md gap-3">
           <LaneBtn label="▲" sub="Lane Up" onPress={() => send("up")} />
           <LaneBtn label="▼" sub="Lane Down" onPress={() => send("down")} />
+          <button
+            onPointerDown={(e) => {
+              e.preventDefault();
+              send("boost");
+            }}
+            onPointerUp={() => send("boostoff")}
+            onPointerLeave={() => send("boostoff")}
+            onPointerCancel={() => send("boostoff")}
+            aria-label="Dash forward"
+            className="flex h-16 flex-[1.3] touch-none flex-col items-center justify-center rounded-md border-2 border-black bg-mamdani-ember font-pixel text-lg text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
+          >
+            ⏩
+            <span className="mt-0.5 text-[8px] uppercase">Dash · hold</span>
+          </button>
         </div>
       </div>
 
@@ -215,6 +240,7 @@ function InfoContent({ onStart }: { onStart: () => void }) {
         <li>🏃 You&apos;re the Mayor — you jog down the street on your own.</li>
         <li>⬆️⬇️ Swipe up/down (or the buttons) to change lanes.</li>
         <li>🛠️ Line up on a pothole and it patches — a car is racing it from behind.</li>
+        <li>⏩ Hold DASH to sprint ahead and buy space — but you skip potholes while sprinting.</li>
         <li>🚗 Beat the car and the lane flows; lose the race and it jams (📈 gridlock).</li>
         <li>🏁 Finish the shift&apos;s patches before GRIDLOCK maxes out.</li>
       </ul>

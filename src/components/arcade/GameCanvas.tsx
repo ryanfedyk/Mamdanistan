@@ -20,6 +20,7 @@ export function GameCanvas<TState extends BaseGameState>({
   controls,
   accentColor = "#21D4FD",
   fluid = false,
+  tapToStart = false,
 }: {
   engine: GameEngine<TState>;
   width: number;
@@ -31,7 +32,12 @@ export function GameCanvas<TState extends BaseGameState>({
   /** Let the canvas span the full container width (crisp pixel upscaling),
    *  keeping the HUD + controls centered at a readable width. */
   fluid?: boolean;
+  /** Drop the Insert Coin button; tap the board (or a control) to begin.
+   *  Already implicit for the `updown` cabinet. */
+  tapToStart?: boolean;
 }) {
+  // Cabinets that begin on a board tap rather than an Insert Coin button.
+  const noCoin = controls === "updown" || tapToStart;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<TState>(engine.init());
   const rafRef = useRef<number>(0);
@@ -116,15 +122,15 @@ export function GameCanvas<TState extends BaseGameState>({
           width={width}
           height={height}
           onPointerDown={
-            controls === "flap" || controls === "tap" || controls === "updown"
+            controls === "flap" || controls === "tap" || controls === "updown" || tapToStart
               ? (e) => {
                   e.preventDefault();
                   if (controls === "flap") {
                     send("flap");
                     return;
                   }
-                  if (controls === "updown") {
-                    // Tap the pool to kick off the dive.
+                  if (controls === "updown" || (tapToStart && controls !== "tap")) {
+                    // Tap the board to begin (the engine ignores it once playing).
                     send("start");
                     return;
                   }
@@ -165,10 +171,9 @@ export function GameCanvas<TState extends BaseGameState>({
           <DPad onMove={send} />
         )}
 
-        {/* Coin slot. The updown cabinet starts by tapping the pool / KICK OFF,
-            so it drops the Insert Coin button and sets Reset well apart from
-            the ▲/▼ paddles. */}
-        {controls === "updown" ? (
+        {/* Coin slot. Tap-to-start cabinets (the pool, Fix the City) drop the
+            Insert Coin button and set Reset well apart from the controls. */}
+        {noCoin ? (
           <div className="flex justify-center pt-4">
             <button
               onPointerDown={(e) => {

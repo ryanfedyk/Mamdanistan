@@ -30,27 +30,23 @@ export default function FixTheCityPage() {
         ‹ Back to The Arcade
       </Link>
 
+      {/* Cover art — desktop only; on mobile the game owns the screen. */}
       {cab?.hero && (
-        <div className="panel overflow-hidden">
+        <div className="panel hidden overflow-hidden lg:block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={cab.hero}
-            alt={`${cab.title} — title art`}
-            className="max-h-72 w-full object-cover [image-rendering:pixelated]"
+            alt={`${cab.title} — title card`}
+            className="max-h-64 w-full object-cover [image-rendering:pixelated]"
           />
         </div>
       )}
 
-      <header className="space-y-2">
-        <h1 className="pixel-heading text-lg text-mamdani-ember sm:text-2xl">
-          {cab?.title ?? "Fix the City"}
-        </h1>
-        <p className="max-w-2xl font-terminal text-xl leading-relaxed text-mamdani-fog">
-          {cab?.howToPlay}
-        </p>
-      </header>
+      <h1 className="pixel-heading text-base text-mamdani-ember sm:text-2xl">
+        {cab?.title ?? "Fix the City"}
+      </h1>
 
-      <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
+      <div className="space-y-6">
         <GameCanvas
           engine={fixTheCity}
           width={FIX_THE_CITY_DIMENSIONS.width}
@@ -58,21 +54,31 @@ export default function FixTheCityPage() {
           keyMap={KEY_MAP}
           controls="dpad"
           accentColor="#FF6B35"
+          fluid
+          tapToStart
         />
 
-        <aside className="panel h-fit space-y-3 px-5 py-5">
+        <aside className="panel space-y-3 px-5 py-4">
+          <p className="font-pixel text-[8px] uppercase text-mamdani-cyan">
+            ⚠ Wireframe prototype — art incoming
+          </p>
           <h2 className="font-pixel text-[10px] uppercase text-mamdani-gold">
-            Mission Brief
+            How to Play
           </h2>
           <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
-            <li>🚧 Use the on-screen D-PAD (or ARROWS / WASD).</li>
-            <li>🕳️ Stop on a hazard to clear it (+25).</li>
-            <li>⏱️ Clear the whole grid before the clock dies.</li>
-            <li>🚲 Gridlock is the final boss. Defeat it.</li>
+            <li>🎮 TAP the board (or press any arrow) to start — no coin needed.</li>
+            <li>⬆️⬇️⬅️➡️ Hop across the lanes with the D-PAD / arrows / WASD.</li>
+            <li>🛠️ Stop on a hazard to patch it. New jobs keep popping up.</li>
+            <li>🚗 A car clips you → back to the depot, minus a few seconds.</li>
+            <li>🏁 Clear the whole repair quota before the clock dies to win.</li>
           </ul>
-          <p className="font-terminal text-base text-mamdani-fog/70">
-            Prototype loop — combos, angry drivers, and tougher grids incoming.
-          </p>
+          <div className="space-y-1 border-t border-mamdani-steel/40 pt-3 font-terminal text-base text-mamdani-fog/80">
+            <p className="font-pixel text-[8px] uppercase text-mamdani-fog">Hazard key</p>
+            <p>🕳️ pothole · 🚧 construction · 🪨 debris · 🚒 hydrant · 🚦 signal</p>
+            <p className="text-mamdani-cyan/70">
+              → cyan cars run right · ← amber cars run left.
+            </p>
+          </div>
         </aside>
       </div>
     </div>

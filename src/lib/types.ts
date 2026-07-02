@@ -164,26 +164,57 @@ export interface FormalPlungeState extends BaseGameState {
   poolsUnlocked: number;
 }
 
-/* ---- "Fix the City" — grid-clearing infrastructure sprint ------------- */
+/* ---- "Fix the City" — Frogger-style traffic-dodging repair sprint ------ */
 
-/** A single cell hazard the player must clear. */
+/** Kinds of infrastructure hazard the player must patch. */
+export type CityHazardType =
+  | "pothole"
+  | "construction"
+  | "debris"
+  | "hydrant"
+  | "signal";
+
+/** A single repair job that pops up on a traffic lane (whack-a-mole). */
 export interface CityHazard {
   /** Grid column. */
   col: number;
-  /** Grid row. */
+  /** Grid row (always a traffic lane). */
   row: number;
-  type: "pothole" | "blocked-lane" | "debris";
-  /** True once the player has cleared it. */
-  cleared: boolean;
+  type: CityHazardType;
+  /** 0→1 pop-in animation progress. */
+  pop: number;
+}
+
+/** A car streaming across one traffic lane. */
+export interface TrafficCar {
+  /** Lane row it travels in. */
+  row: number;
+  /** Center x in canvas px. */
+  x: number;
+  /** Horizontal velocity in px/sec (sign = direction). */
+  vx: number;
+  /** Body width in px. */
+  w: number;
 }
 
 export interface FixTheCityState extends BaseGameState {
   /** Player position on the grid. */
   player: { col: number; row: number };
   grid: { cols: number; rows: number };
+  /** Active repair jobs on the board. */
   hazards: CityHazard[];
-  /** Hazards cleared this run. */
+  /** Live traffic. */
+  cars: TrafficCar[];
+  /** Total repairs needed to win. */
+  quota: number;
+  /** Repairs completed this run. */
   fixed: number;
+  /** Seconds of post-hit invulnerability remaining. */
+  invuln: number;
+  /** Times struck by traffic this run. */
+  hits: number;
+  /** Seconds until the next hazard may pop up. */
+  spawnTimer: number;
 }
 
 /**

@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { MapPin } from "@/lib/types";
 import { CATEGORY_COLORS, CATEGORY_GLYPHS } from "@/data/pins";
@@ -50,6 +52,29 @@ export function PinCard({
           </button>
         )}
       </div>
+
+      {/* Embedded image (hot-linked). A broken/blocked URL hides the whole
+          figure so the card degrades cleanly. */}
+      {pin.image && (
+        <figure className="relative border-b-4 border-outline bg-background">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={pin.image}
+            alt={pin.imageAlt ?? pin.title}
+            loading="lazy"
+            onError={(e) => {
+              const fig = e.currentTarget.closest("figure");
+              if (fig) (fig as HTMLElement).style.display = "none";
+            }}
+            className="h-44 w-full object-cover"
+          />
+          {pin.imageCredit && (
+            <figcaption className="absolute bottom-0 right-0 bg-black/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+              {pin.imageCredit}
+            </figcaption>
+          )}
+        </figure>
+      )}
 
       <div className="space-y-4 px-5 py-5">
         <StatusBanner text={pin.statusBanner} tone="victory" />

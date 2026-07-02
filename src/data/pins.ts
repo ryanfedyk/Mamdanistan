@@ -22,10 +22,18 @@ export const MAP_PINS: MapPin[] = [
     mapPosition: { x: 41, y: 24 }, // East Harlem, just NE of Central Park's top
     progress: 100,
     statusBanner: "POOL SEASON: UNLOCKED",
+    image: "https://img.youtube.com/vi/gXIRylGjuwo/hqdefault.jpg",
+    imageAlt: "The Formal Plunge at Thomas Jefferson Pool",
+    imageCredit: "via YouTube",
     references: [
       {
-        label: "The Formal Plunge, frame by frame",
+        label: "Watch the Formal Plunge",
         kind: "press",
+        href: "https://www.youtube.com/watch?v=gXIRylGjuwo",
+      },
+      {
+        label: "3-K & 2-Care celebration",
+        kind: "article",
       },
       {
         label: "Free swim slots added this summer",
@@ -55,10 +63,15 @@ export const MAP_PINS: MapPin[] = [
     mapPosition: { x: 50, y: 57 }, // Williamsburg Bridge (red span) over the East River
     progress: 92,
     statusBanner: "BUREAUCRACY LEVEL: DEFEATED",
+    image:
+      "https://commons.wikimedia.org/wiki/Special:FilePath/Williamsburg%20Bridge.jpg",
+    imageAlt: "The Williamsburg Bridge over the East River",
+    imageCredit: "via Wikimedia Commons",
     references: [
       {
         label: "Crews tackle the infamous 'bumps'",
         kind: "article",
+        href: "https://www.youtube.com/watch?v=gXIRylGjuwo",
       },
       {
         label: "Potholes patched on approach",
@@ -88,8 +101,17 @@ export const MAP_PINS: MapPin[] = [
     gameSlug: "bus-lane-blitz",
     progress: 35,
     statusBanner: "FARE BOX: DECOMMISSIONED",
+    image:
+      "https://commons.wikimedia.org/wiki/Special:FilePath/MTA%20Bus%20New%20Flyer.jpg",
+    imageAlt: "A fare-free MTA city bus",
+    imageCredit: "via Wikimedia Commons",
     references: [
-      { label: "Riders board through every door", kind: "article" },
+      {
+        label: "100 days: promising progress",
+        kind: "article",
+        href: "https://rosalux.nyc/100-days-of-mayor-mamdani-promising-progress/",
+      },
+      { label: "Fare eliminated", kind: "metric", value: "100%" },
       { label: "Free routes in service", kind: "metric", value: "5 boroughs" },
       { label: "Avg. boarding time", kind: "metric", value: "−40%" },
     ],
@@ -109,8 +131,17 @@ export const MAP_PINS: MapPin[] = [
     gameSlug: "landlord-invaders",
     progress: 20,
     statusBanner: "RENT: FROZEN SOLID",
+    image:
+      "https://commons.wikimedia.org/wiki/Special:FilePath/Brooklyn%20brownstones.jpg",
+    imageAlt: "Rent-stabilized apartment rowhouses",
+    imageCredit: "via Wikimedia Commons",
     references: [
-      { label: "Tenants exhale for the first time", kind: "press" },
+      {
+        label: "100 days: promising progress",
+        kind: "press",
+        href: "https://rosalux.nyc/100-days-of-mayor-mamdani-promising-progress/",
+      },
+      { label: "Allowed rent increase", kind: "metric", value: "0%" },
       { label: "Stabilized units protected", kind: "metric", value: "1,000,000" },
       { label: "Scheduled rent hikes", kind: "metric", value: "0" },
     ],
@@ -131,6 +162,10 @@ export const MAP_PINS: MapPin[] = [
     gameSlug: "toddler-tycoon",
     progress: 15,
     statusBanner: "CHILDCARE: UNIVERSAL",
+    image:
+      "https://commons.wikimedia.org/wiki/Special:FilePath/Preschool.jpg",
+    imageAlt: "A universal free childcare classroom",
+    imageCredit: "via Wikimedia Commons",
     references: [
       { label: "Funded by taxing the ultra-rich", kind: "article" },
       { label: "2-year-olds covered", kind: "metric", value: "all of them" },
@@ -152,6 +187,9 @@ export const MAP_PINS: MapPin[] = [
     gameSlug: "asphalt-attack",
     progress: 78,
     statusBanner: "BUREAUCRACY LEVEL: DEFEATED",
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Pothole.jpg",
+    imageAlt: "A freshly patched pothole",
+    imageCredit: "via Wikimedia Commons",
     references: [
       { label: "Road hazards cleared in record time", kind: "article" },
       { label: "Potholes filled", kind: "metric", value: "165,000" },

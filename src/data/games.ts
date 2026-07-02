@@ -16,6 +16,8 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
       "and swan-float tycoons. One touch drags you under.",
     accent: "mamdani-mint",
     glyph: "🏊",
+    hero: "/games/formal-plunge-hero.webp",
+    heroThumb: "/games/formal-plunge-icon.webp",
     status: "playable",
   },
   {

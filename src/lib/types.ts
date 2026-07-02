@@ -74,6 +74,13 @@ export interface MapPin {
   progress: number;
   /** Pixel-flag status banner, e.g. "BUREAUCRACY LEVEL: DEFEATED". */
   statusBanner: string;
+  /** Optional card image, hot-linked from an external host (not self-hosted).
+   *  Broken links degrade gracefully — the card just drops the image. */
+  image?: string;
+  /** Alt text for the embedded image. */
+  imageAlt?: string;
+  /** Short source credit shown over the image, e.g. "via Wikimedia Commons". */
+  imageCredit?: string;
   references: PinReference[];
 }
 

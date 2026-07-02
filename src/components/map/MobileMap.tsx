@@ -7,12 +7,15 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { MapPin, WinCategory } from "@/lib/types";
 
 /**
- * MobileMap — full-window, page-locked tactical map (all screen sizes now).
+ * MobileMap — page-locked tactical map (all screen sizes).
  * Google-Maps-style:
  * - drag to pan; pinch (touch) or mouse-wheel (desktop) to zoom; +/- buttons;
- * - draggable bottom sheets (drag the handle to resize, drag down to dismiss);
- * - interacting with the map dismisses an open sheet;
- * - opening a sheet centers the chosen pin in the band above it.
+ * - on phones a briefing opens in a draggable bottom sheet;
+ * - on desktop the map is framed to a centered column (no disorienting
+ *   full-bleed zoom) and a briefing opens in a left-docked side panel that
+ *   preserves the tall map's height;
+ * - interacting with the map dismisses an open sheet / panel;
+ * - opening a briefing centers the chosen pin in the visible band.
  */
 const MAP_SRC = "/map-nyc.webp";
 const IMG_W = 1536;
@@ -20,7 +23,7 @@ const IMG_H = 2752;
 const ASPECT = IMG_H / IMG_W;
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
-const PEEK = 0.5; // default sheet height (fraction of the map area)
+const PEEK = 0.5; // bottom-sheet height as a fraction of the map area (mobile)
 
 const LEGEND: Array<{ cat: WinCategory; label: string }> = [
   { cat: "pools", label: "Pools" },
@@ -123,7 +126,10 @@ export function MobileMap() {
     const contentH = contentW * ASPECT;
     const px = (pin.mapPosition.x / 100) * contentW;
     const py = (pin.mapPosition.y / 100) * contentH;
-    const visibleH = ch * (1 - PEEK);
+    // Phones get a bottom sheet over the lower half; desktop's briefing docks
+    // to the left, so the full map height stays visible.
+    const desktop = window.matchMedia("(min-width: 1024px)").matches;
+    const visibleH = ch * (desktop ? 1 : 1 - PEEK);
     el.scrollTo({ left: px - cw / 2, top: py - visibleH / 2, behavior: "smooth" });
   };
 
@@ -225,136 +231,175 @@ export function MobileMap() {
     setToast(`${text} — copied`);
   };
 
-  return (
-    <div className="fixed inset-x-0 bottom-0 top-[60px] z-40 bg-secondary">
-      {/* Map surface — custom pan/pinch; native gestures off. */}
-      <div
-        ref={scrollRef}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        className="h-full w-full touch-none overflow-auto"
-      >
-        <div
-          ref={contentRef}
-          className="relative"
-          style={{ width: `${scale * 100}%`, minWidth: "100%" }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            ref={imgRef}
-            src={MAP_SRC}
-            alt="Illustrated map of New York City"
-            onClick={onImageClick}
-            className={`block w-full select-none ${plotMode ? "cursor-crosshair" : ""}`}
-            draggable={false}
-          />
-          {MAP_PINS.map((pin) =>
-            pin.mapPosition ? (
+  // The accomplishments directory — reused by the desktop panel and the mobile
+  // welcome sheet.
+  const directory = (
+    <>
+      <div className="border-b-2 border-outline bg-primary px-4 py-2 text-white">
+        <p className="text-[10px] font-black uppercase tracking-widest text-secondary">
+          Live Uplink · NYC Command
+        </p>
+        <h1 className="brutal-heading text-xl leading-none">The Grid</h1>
+      </div>
+      <div className="space-y-3 px-4 py-3">
+        <p className="text-sm font-bold text-on-surface">
+          Every flag is a confirmed material win. Tap a pin — or a win below —
+          for its briefing.
+        </p>
+        <ul className="border-2 border-outline">
+          {MAP_PINS.map((pin) => (
+            <li key={pin.id} className="border-b-2 border-outline/20 last:border-0">
               <button
-                key={pin.id}
-                onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => open(pin.id)}
-                aria-label={pin.title}
-                className="absolute grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center border-[3px] border-outline text-base shadow-[2px_2px_0_0_#000]"
-                style={{
-                  left: `${pin.mapPosition.x}%`,
-                  top: `${pin.mapPosition.y}%`,
-                  backgroundColor: CATEGORY_COLORS[pin.category],
-                  outline: pin.id === activeId ? "3px solid #FFA500" : undefined,
-                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-secondary"
               >
-                <span aria-hidden>{CATEGORY_GLYPHS[pin.category]}</span>
+                <span
+                  className="grid h-6 w-6 shrink-0 place-items-center border-2 border-outline text-xs"
+                  style={{ backgroundColor: CATEGORY_COLORS[pin.category] }}
+                  aria-hidden
+                >
+                  {CATEGORY_GLYPHS[pin.category]}
+                </span>
+                <span className="text-sm font-black uppercase text-on-surface">
+                  {pin.title}
+                </span>
               </button>
-            ) : null,
+            </li>
+          ))}
+        </ul>
+        <div className="flex flex-wrap gap-2">
+          {LEGEND.map(({ cat, label }) => (
+            <span key={cat} className="flex items-center gap-1 text-[11px] font-black uppercase text-on-surface/70">
+              <span className="inline-block h-3 w-3 border border-outline" style={{ backgroundColor: CATEGORY_COLORS[cat] }} />
+              {label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
+  const panelOpen = welcome || Boolean(active);
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 top-[64px] z-40 flex bg-secondary sm:top-[68px] lg:top-[92px]">
+      {/* Desktop: left-docked briefing panel (keeps the tall map's full height).
+          On phones this is hidden in favour of the bottom sheets below. */}
+      {panelOpen && (
+        <aside className="hidden h-full w-[360px] shrink-0 flex-col overflow-hidden border-r-2 border-outline bg-white lg:flex">
+          {/* Slim toolbar so the close control never overlaps the briefing. */}
+          <div className="flex shrink-0 items-center justify-end border-b-2 border-outline bg-secondary px-2 py-1.5">
+            <button
+              onClick={() => {
+                setActiveId(null);
+                setWelcome(false);
+              }}
+              aria-label="Close panel"
+              className="border-2 border-outline bg-white px-2 py-1 text-[11px] font-black uppercase text-primary brutal-shadow-sm"
+            >
+              ✕ Close
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {active ? <PinCard pin={active} bare /> : directory}
+          </div>
+        </aside>
+      )}
+
+      {/* Map region — framed to a centered column so wide monitors don't blow
+          the map up to full-bleed (which zoomed in disorientingly far). */}
+      <div className="relative min-w-0 flex-1">
+        <div className="relative mx-auto h-full w-full max-w-[720px]">
+          {/* Map surface — custom pan/pinch; native gestures off. */}
+          <div
+            ref={scrollRef}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            className="h-full w-full touch-none overflow-auto"
+          >
+            <div
+              ref={contentRef}
+              className="relative"
+              style={{ width: `${scale * 100}%`, minWidth: "100%" }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                ref={imgRef}
+                src={MAP_SRC}
+                alt="Illustrated map of New York City"
+                onClick={onImageClick}
+                className={`block w-full select-none ${plotMode ? "cursor-crosshair" : ""}`}
+                draggable={false}
+              />
+              {MAP_PINS.map((pin) =>
+                pin.mapPosition ? (
+                  <button
+                    key={pin.id}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => open(pin.id)}
+                    aria-label={pin.title}
+                    className="absolute grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center border-[3px] border-outline text-base shadow-[2px_2px_0_0_#000]"
+                    style={{
+                      left: `${pin.mapPosition.x}%`,
+                      top: `${pin.mapPosition.y}%`,
+                      backgroundColor: CATEGORY_COLORS[pin.category],
+                      outline: pin.id === activeId ? "3px solid #FFA500" : undefined,
+                    }}
+                  >
+                    <span aria-hidden>{CATEGORY_GLYPHS[pin.category]}</span>
+                  </button>
+                ) : null,
+              )}
+            </div>
+          </div>
+
+          {/* Zoom HUD */}
+          <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-2">
+            <ZoomBtn label="+" onClick={() => setZoom(scaleRef.current + 0.5)} />
+            <ZoomBtn label="−" onClick={() => setZoom(scaleRef.current - 0.5)} />
+          </div>
+
+          {plotMode && (
+            <div className="absolute left-3 top-3 z-10 border-2 border-outline bg-tertiary px-2 py-1 text-[10px] font-black uppercase text-white">
+              Plot · tap to copy
+            </div>
+          )}
+          {toast && (
+            <div className="absolute right-3 top-3 z-10 border-2 border-outline bg-white px-2 py-1 font-mono text-[11px] font-bold text-black">
+              {toast}
+            </div>
+          )}
+
+          {!welcome && !active && (
+            <button
+              onClick={() => setWelcome(true)}
+              className="absolute right-3 top-3 z-20 border-2 border-outline bg-white px-3 py-2 text-xs font-black uppercase text-primary shadow-brutal"
+            >
+              ⓘ Intel
+            </button>
           )}
         </div>
       </div>
 
-      {/* Zoom HUD */}
-      <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-2">
-        <ZoomBtn label="+" onClick={() => setZoom(scaleRef.current + 0.5)} />
-        <ZoomBtn label="−" onClick={() => setZoom(scaleRef.current - 0.5)} />
-      </div>
+      {/* Mobile: draggable bottom sheets (hidden on desktop, which uses the
+          left panel instead). */}
+      <div className="lg:hidden">
+        {welcome && (
+          <BottomSheet onClose={() => setWelcome(false)}>
+            <div className="mx-auto w-full max-w-3xl">{directory}</div>
+          </BottomSheet>
+        )}
 
-      {plotMode && (
-        <div className="absolute left-3 top-3 z-10 border-2 border-outline bg-tertiary px-2 py-1 text-[10px] font-black uppercase text-white">
-          Plot · tap to copy
-        </div>
-      )}
-      {toast && (
-        <div className="absolute right-3 top-3 z-10 border-2 border-outline bg-white px-2 py-1 font-mono text-[11px] font-bold text-black">
-          {toast}
-        </div>
-      )}
-
-      {!welcome && !active && (
-        <button
-          onClick={() => setWelcome(true)}
-          className="absolute right-3 top-3 z-20 border-2 border-outline bg-white px-3 py-2 text-xs font-black uppercase text-primary shadow-brutal"
-        >
-          ⓘ Intel
-        </button>
-      )}
-
-      {/* Welcome / directory sheet */}
-      {welcome && (
-        <BottomSheet onClose={() => setWelcome(false)}>
-          <div className="mx-auto w-full max-w-3xl">
-          <div className="border-b-2 border-outline bg-primary px-4 py-2 text-white">
-            <p className="text-[10px] font-black uppercase tracking-widest text-secondary">
-              Live Uplink · NYC Command
-            </p>
-            <h1 className="brutal-heading text-xl leading-none">The Grid</h1>
-          </div>
-          <div className="space-y-3 px-4 py-3">
-            <p className="text-sm font-bold text-on-surface">
-              Every flag is a confirmed material win. Tap a pin — or a win below
-              — for its briefing.
-            </p>
-            <ul className="border-2 border-outline">
-              {MAP_PINS.map((pin) => (
-                <li key={pin.id} className="border-b-2 border-outline/20 last:border-0">
-                  <button
-                    onClick={() => open(pin.id)}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-secondary"
-                  >
-                    <span
-                      className="grid h-6 w-6 shrink-0 place-items-center border-2 border-outline text-xs"
-                      style={{ backgroundColor: CATEGORY_COLORS[pin.category] }}
-                      aria-hidden
-                    >
-                      {CATEGORY_GLYPHS[pin.category]}
-                    </span>
-                    <span className="text-sm font-black uppercase text-on-surface">
-                      {pin.title}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="flex flex-wrap gap-2">
-              {LEGEND.map(({ cat, label }) => (
-                <span key={cat} className="flex items-center gap-1 text-[11px] font-black uppercase text-on-surface/70">
-                  <span className="inline-block h-3 w-3 border border-outline" style={{ backgroundColor: CATEGORY_COLORS[cat] }} />
-                  {label}
-                </span>
-              ))}
+        {active && (
+          <BottomSheet key={active.id} onClose={() => setActiveId(null)}>
+            <div className="mx-auto w-full max-w-3xl">
+              <PinCard pin={active} bare />
             </div>
-          </div>
-          </div>
-        </BottomSheet>
-      )}
-
-      {/* Pin detail sheet */}
-      {active && (
-        <BottomSheet key={active.id} onClose={() => setActiveId(null)}>
-          <div className="mx-auto w-full max-w-3xl">
-            <PinCard pin={active} bare />
-          </div>
-        </BottomSheet>
-      )}
+          </BottomSheet>
+        )}
+      </div>
     </div>
   );
 }

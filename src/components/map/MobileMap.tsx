@@ -7,9 +7,9 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { MapPin, WinCategory } from "@/lib/types";
 
 /**
- * MobileMap — full-screen, page-locked map (<lg only). Google-Maps-style:
- * - custom one-finger pan + two-finger pinch-zoom on the map only (so the
- *   floating UI never scales);
+ * MobileMap — full-window, page-locked tactical map (all screen sizes now).
+ * Google-Maps-style:
+ * - drag to pan; pinch (touch) or mouse-wheel (desktop) to zoom; +/- buttons;
  * - draggable bottom sheets (drag the handle to resize, drag down to dismiss);
  * - interacting with the map dismisses an open sheet;
  * - opening a sheet centers the chosen pin in the band above it.
@@ -67,6 +67,45 @@ export function MobileMap() {
 
   useEffect(() => {
     setPlotMode(new URLSearchParams(window.location.search).has("plot"));
+  }, []);
+
+  // Center the map on mount (nice on desktop where the window is wide).
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cw = el.clientWidth;
+    const contentW = Math.max(cw, cw * scaleRef.current);
+    const contentH = contentW * ASPECT;
+    el.scrollLeft = (contentW - cw) / 2;
+    el.scrollTop = contentH * 0.14; // start on the upper boroughs
+  }, []);
+
+  // Desktop mouse-wheel zoom toward the cursor (non-passive so we can stop the
+  // native scroll). Drag still pans; the +/- buttons still work.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const cur = scaleRef.current;
+      const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, +(cur * (e.deltaY < 0 ? 1.12 : 1 / 1.12)).toFixed(3)));
+      if (next === cur) return;
+      const rect = el.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const cw = el.clientWidth;
+      const oldW = Math.max(cw, cw * cur);
+      const newW = Math.max(cw, cw * next);
+      const fracX = (el.scrollLeft + mx) / oldW;
+      const fracY = (el.scrollTop + my) / (oldW * ASPECT);
+      if (contentRef.current) contentRef.current.style.width = `${next * 100}%`;
+      el.scrollLeft = fracX * newW - mx;
+      el.scrollTop = fracY * (newW * ASPECT) - my;
+      scaleRef.current = next;
+      setScale(next);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
   const setZoom = (s: number) => {
@@ -187,7 +226,7 @@ export function MobileMap() {
   };
 
   return (
-    <div className="fixed inset-x-0 bottom-0 top-[60px] z-40 bg-secondary lg:hidden">
+    <div className="fixed inset-x-0 bottom-0 top-[60px] z-40 bg-secondary">
       {/* Map surface — custom pan/pinch; native gestures off. */}
       <div
         ref={scrollRef}
@@ -262,6 +301,7 @@ export function MobileMap() {
       {/* Welcome / directory sheet */}
       {welcome && (
         <BottomSheet onClose={() => setWelcome(false)}>
+          <div className="mx-auto w-full max-w-3xl">
           <div className="border-b-2 border-outline bg-primary px-4 py-2 text-white">
             <p className="text-[10px] font-black uppercase tracking-widest text-secondary">
               Live Uplink · NYC Command
@@ -303,13 +343,16 @@ export function MobileMap() {
               ))}
             </div>
           </div>
+          </div>
         </BottomSheet>
       )}
 
       {/* Pin detail sheet */}
       {active && (
         <BottomSheet key={active.id} onClose={() => setActiveId(null)}>
-          <PinCard pin={active} bare />
+          <div className="mx-auto w-full max-w-3xl">
+            <PinCard pin={active} bare />
+          </div>
         </BottomSheet>
       )}
     </div>

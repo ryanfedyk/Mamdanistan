@@ -47,6 +47,7 @@ type Gesture =
 
 export function MobileMap() {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>([]); // previously-viewed cards
   const [welcome, setWelcome] = useState(true);
   const [scale, setScale] = useState(2.4);
   const [plotMode, setPlotMode] = useState(false);
@@ -142,12 +143,35 @@ export function MobileMap() {
 
   const open = (id: string) => {
     const pin = MAP_PINS.find((p) => p.id === id);
+    // Remember the card we're leaving so Back can return to it.
+    if (activeId && activeId !== id) setHistory((h) => [...h, activeId]);
     setActiveId(id);
     setWelcome(false);
     if (pin) requestAnimationFrame(() => centerOnPin(pin));
   };
 
+  // Close the current card (X). Keep it in history so opening another and
+  // hitting Back returns here.
+  const closeCard = () => {
+    if (activeId) setHistory((h) => [...h, activeId]);
+    setActiveId(null);
+  };
+
+  // Back → the previously-viewed card (or the directory when none is left).
+  const back = () => {
+    if (history.length === 0) {
+      setActiveId(null);
+      return;
+    }
+    const prev = history[history.length - 1];
+    setHistory((h) => h.slice(0, -1));
+    setActiveId(prev);
+    const pin = MAP_PINS.find((p) => p.id === prev);
+    if (pin) requestAnimationFrame(() => centerOnPin(pin));
+  };
+
   const dismissOnMap = () => {
+    if (activeId) setHistory((h) => [...h, activeId]);
     if (active || welcome) {
       setActiveId(null);
       setWelcome(false);
@@ -344,7 +368,12 @@ export function MobileMap() {
         <aside className="hidden h-full w-[360px] shrink-0 flex-col overflow-hidden border-r-2 border-outline bg-white lg:flex">
           <div className="hover-scroll min-h-0 flex-1 overflow-y-auto">
             {active ? (
-              <PinCard pin={active} bare onClose={() => setActiveId(null)} />
+              <PinCard
+                pin={active}
+                bare
+                onClose={closeCard}
+                onBack={history.length ? back : undefined}
+              />
             ) : (
               directory
             )}
@@ -441,9 +470,9 @@ export function MobileMap() {
         )}
 
         {active && (
-          <BottomSheet key={active.id} onClose={() => setActiveId(null)}>
+          <BottomSheet key={active.id} onClose={closeCard}>
             <div className="mx-auto w-full max-w-3xl">
-              <PinCard pin={active} bare />
+              <PinCard pin={active} bare onBack={history.length ? back : undefined} />
             </div>
           </BottomSheet>
         )}

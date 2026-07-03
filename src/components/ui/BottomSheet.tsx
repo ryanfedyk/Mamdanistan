@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Draggable bottom sheet with snap points (peek / full) and swipe-to-dismiss.
@@ -27,13 +27,13 @@ const STYLES: Record<Variant, { panel: string; header: string; grip: string; clo
     panel: "border-t-4 border-outline bg-surface shadow-[0_-6px_0_0_#000]",
     header: "border-b-2 border-outline",
     grip: "bg-outline/40",
-    close: "border-2 border-outline bg-white font-black text-black",
+    close: "text-xl font-black text-black/45 hover:text-black",
   },
   arcade: {
     panel: "border-t-2 border-mamdani-steel bg-mamdani-slate shadow-[0_-6px_0_0_#000]",
     header: "border-b-2 border-mamdani-steel/60",
     grip: "bg-mamdani-fog/40",
-    close: "border-2 border-mamdani-steel bg-mamdani-ink/70 font-pixel text-[10px] text-mamdani-fog",
+    close: "font-pixel text-[12px] text-mamdani-fog/60 hover:text-mamdani-fog",
   },
 };
 
@@ -63,8 +63,14 @@ export function BottomSheet({
 }) {
   const [frac, setFrac] = useState(peek);
   const [dragging, setDragging] = useState(false);
+  const [entered, setEntered] = useState(false); // slide up on mount
   const fracRef = useRef(frac);
   fracRef.current = frac;
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const ref = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -211,10 +217,14 @@ export function BottomSheet({
   return (
     <div
       ref={ref}
-      style={{ height: `${frac * 100}%` }}
-      className={`absolute inset-x-0 bottom-0 z-30 flex flex-col ${s.panel} ${
-        dragging ? "" : "transition-[height] duration-200"
-      }`}
+      style={{
+        height: `${frac * 100}%`,
+        transform: entered ? "translateY(0)" : "translateY(100%)",
+        transition: dragging
+          ? "transform 280ms cubic-bezier(0.22,1,0.36,1)"
+          : "height 200ms ease, transform 280ms cubic-bezier(0.22,1,0.36,1)",
+      }}
+      className={`absolute inset-x-0 bottom-0 z-30 flex flex-col ${s.panel}`}
     >
       <div
         onPointerDown={(e) => begin(e, "handle")}

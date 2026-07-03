@@ -90,6 +90,9 @@ export interface MapPin {
   imageAlt?: string;
   /** Short source credit shown over the image, e.g. "via Wikimedia Commons". */
   imageCredit?: string;
+  /** CSS object-position for the hero crop (e.g. "50% 25%") so a face stays in
+   *  frame. Defaults to a face-friendly upper-centre when omitted. */
+  imageFocus?: string;
   references: PinReference[];
 }
 

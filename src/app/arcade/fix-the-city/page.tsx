@@ -17,6 +17,7 @@ const KEY_MAP: Record<string, string> = {
   ShiftRight: "boost",
   Space: "start",
   Enter: "start",
+  KeyN: "next",
 };
 
 export default function FixTheCityPage() {
@@ -76,6 +77,7 @@ export default function FixTheCityPage() {
               <li>⏩ Hold → / D (or Shift) to DASH ahead and buy space — you skip potholes while sprinting.</li>
               <li>🚗 Beat the car and the lane flows; lose the race and it jams (📈 gridlock).</li>
               <li>🏁 Finish the shift&apos;s patches before GRIDLOCK maxes out.</li>
+              <li>🔥 Clear Shift 1 and press N for Shift 2 — faster traffic, a bigger quota.</li>
             </ul>
             <div className="space-y-1 border-t border-mamdani-steel/40 pt-3 font-terminal text-base text-mamdani-fog/80">
               <p className="font-pixel text-[8px] uppercase text-mamdani-fog">Hazard key</p>

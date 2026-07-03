@@ -52,6 +52,22 @@ const FIX_RELIEF = 2; // gridlock eased when you patch one in time
 const DRAIN = 2.1; // gridlock bled off per second
 const FIX_SCORE = 100;
 
+/* Difficulty tiers. Level 2 sends the traffic faster, spawns jobs quicker,
+ * lengthens the shift, and lets gridlock linger — a real second gear. */
+interface Difficulty {
+  carSpeed: number;
+  spawnMin: number;
+  jamHit: number;
+  drain: number;
+  quota: number;
+}
+const LEVELS: Record<number, Difficulty> = {
+  1: { carSpeed: CAR_SPEED, spawnMin: 1.05, jamHit: JAM_HIT, drain: DRAIN, quota: QUOTA },
+  2: { carSpeed: 152, spawnMin: 0.82, jamHit: 16, drain: 1.6, quota: 20 },
+};
+export const MAX_LEVEL = 2;
+const diff = (level: number): Difficulty => LEVELS[level] ?? LEVELS[1];
+
 const H_SPAWN_MIN = 1.05; // seconds between hazard spawns
 const H_SPAWN_JITTER = 0.5;
 const H_AHEAD_MIN = 360; // how far ahead (world px) hazards appear (just off-screen right)
@@ -189,6 +205,11 @@ export interface FixTheCityRunState extends BaseGameState {
   boost: boolean; // DASH held → sprinting forward
   hSpawn: number;
   nextId: number;
+  level: number; // 1 = first shift, 2 = harder
+  carSpeed: number; // difficulty-scaled tunables for this run
+  spawnMin: number;
+  jamHit: number;
+  drain: number;
 }
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
@@ -209,7 +230,7 @@ function cleaningTool(h: RunHazard): "shovel" | "jack" {
 
 /** A hazard + its chaser car, or null if it would stack on an existing one. */
 function spawnPair(
-  s: { mayorX: number; hazards: RunHazard[]; nextId: number },
+  s: { mayorX: number; hazards: RunHazard[]; nextId: number; carSpeed: number },
   pop: number,
 ): { hazard: RunHazard; car: RunCar } | null {
   const lane = randLane();
@@ -222,14 +243,28 @@ function spawnPair(
     worldX: s.mayorX - PX - CAR_ENTER,
     lane,
     crashed: false,
-    speed: CAR_SPEED,
+    speed: s.carSpeed,
   };
   return { hazard, car };
 }
 
-function startState(): FixTheCityRunState {
+function startState(level: number): FixTheCityRunState {
+  const d = diff(level);
   const base = fixTheCityRun.init();
-  let st = { ...base, phase: "playing" as const, mayorX: PX, hazards: [] as RunHazard[], cars: [] as RunCar[], nextId: 1 };
+  let st: FixTheCityRunState = {
+    ...base,
+    phase: "playing" as const,
+    mayorX: PX,
+    hazards: [],
+    cars: [],
+    nextId: 1,
+    level,
+    quota: d.quota,
+    carSpeed: d.carSpeed,
+    spawnMin: d.spawnMin,
+    jamHit: d.jamHit,
+    drain: d.drain,
+  };
   // Seed a couple of jobs already rolling in.
   for (let i = 0; i < 2; i++) {
     const p = spawnPair(st, 1);
@@ -268,6 +303,11 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
       boost: false,
       hSpawn: 0.8,
       nextId: 3,
+      level: 1,
+      carSpeed: CAR_SPEED,
+      spawnMin: H_SPAWN_MIN,
+      jamHit: JAM_HIT,
+      drain: DRAIN,
     };
   },
 
@@ -275,9 +315,15 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
     if (intent === "reset") return fixTheCityRun.init();
     const up = intent === "up";
     const down = intent === "down";
+    // Start a specific level (e.g. "level:2"); the "next" button advances a tier.
+    if (intent.startsWith("level:")) return startState(Number(intent.slice(6)) || 1);
+    if (intent === "next")
+      return state.phase === "won"
+        ? startState(Math.min(MAX_LEVEL, state.level + 1))
+        : state;
     if (state.phase !== "playing") {
       if (intent === "start" || up || down) {
-        const fresh = startState();
+        const fresh = startState(1);
         if (up) return { ...fresh, lane: Math.max(0, fresh.lane - 1) };
         if (down) return { ...fresh, lane: Math.min(LANES - 1, fresh.lane + 1) };
         return fresh;
@@ -380,7 +426,7 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
       const chasing = !!haz && !haz.fixed;
 
       // Cruise toward the pothole; once it's patched (or never ours), zip.
-      let goal = chasing ? CAR_SPEED : ZIP_SPEED;
+      let goal = chasing ? state.carSpeed : ZIP_SPEED;
 
       // Don't rear-end the nearest car/pile ahead in the same lane.
       let lead = Infinity;
@@ -390,7 +436,7 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
         if (d > 0 && d < lead) lead = d;
       }
       if (lead < CAR_GAP) goal = 0;
-      else if (lead < CAR_GAP * 2) goal = Math.min(goal, CAR_SPEED * 0.85);
+      else if (lead < CAR_GAP * 2) goal = Math.min(goal, state.carSpeed * 0.85);
 
       const rate = goal >= c.speed ? CAR_ACCEL : CAR_BRAKE;
       const speed = c.speed + Math.max(-rate * dt, Math.min(rate * dt, goal - c.speed));
@@ -399,7 +445,7 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
 
       if (chasing && prevX < haz!.worldX && newX >= haz!.worldX) {
         // Lost the race → the car piles into the pothole.
-        gridlock = Math.min(GRIDLOCK_MAX, gridlock + JAM_HIT);
+        gridlock = Math.min(GRIDLOCK_MAX, gridlock + state.jamHit);
         hits += 1;
         hazards = hazards.filter((h) => h.id !== haz!.id);
         nextCars.push({ ...c, worldX: haz!.worldX, crashed: true, speed: 0 });
@@ -415,7 +461,7 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
     for (const h of hazards) {
       if (h.worldX < cam - 30) {
         if (!h.fixed) {
-          gridlock = Math.min(GRIDLOCK_MAX, gridlock + JAM_HIT);
+          gridlock = Math.min(GRIDLOCK_MAX, gridlock + state.jamHit);
           hits += 1;
         }
         continue; // drop it
@@ -427,16 +473,16 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
     // Spawn the next job.
     hSpawn -= dt;
     if (hSpawn <= 0) {
-      const p = spawnPair({ mayorX, hazards, nextId }, 0);
+      const p = spawnPair({ mayorX, hazards, nextId, carSpeed: state.carSpeed }, 0);
       if (p) {
         hazards = [...hazards, p.hazard];
         cars = [...cars, p.car];
         nextId += 1;
       }
-      hSpawn = H_SPAWN_MIN + Math.random() * H_SPAWN_JITTER;
+      hSpawn = state.spawnMin + Math.random() * H_SPAWN_JITTER;
     }
 
-    gridlock = Math.max(0, gridlock - DRAIN * dt);
+    gridlock = Math.max(0, gridlock - state.drain * dt);
     score = Math.max(score, fixed * FIX_SCORE + Math.floor((mayorX - PX) / 24));
 
     let phase: FixTheCityRunState["phase"] = state.phase;
@@ -476,7 +522,11 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
     if (state.phase === "attract")
       banner(ctx, "TAP / ▲ ▼ TO START", "patch potholes before the traffic hits them");
     else if (state.phase === "won")
-      banner(ctx, "SHIFT COMPLETE — CITY MOVING", "tap reset to run it back");
+      banner(
+        ctx,
+        state.level < MAX_LEVEL ? `SHIFT ${state.level} COMPLETE` : "ALL SHIFTS CLEARED",
+        state.level < MAX_LEVEL ? "on to a harder shift" : "the city runs like clockwork",
+      );
     else if (state.phase === "gameover")
       banner(ctx, "GRIDLOCK — THE CITY SEIZED UP", "tap reset to try again");
   },
@@ -727,12 +777,12 @@ function drawHud(ctx: CanvasRenderingContext2D, state: FixTheCityRunState) {
   ctx.textAlign = "left";
   ctx.font = "10px monospace";
   ctx.fillStyle = "rgba(11,14,26,0.82)";
-  ctx.fillRect(6, 6, 120, 17);
+  ctx.fillRect(6, 6, 150, 17);
   ctx.strokeStyle = "rgba(255,210,63,0.5)";
   ctx.lineWidth = 1;
-  ctx.strokeRect(6.5, 6.5, 119, 16);
+  ctx.strokeRect(6.5, 6.5, 149, 16);
   ctx.fillStyle = "#FFD23F";
-  ctx.fillText(`PATCHED ${state.fixed}/${state.quota}`, 12, 18);
+  ctx.fillText(`LVL ${state.level} · PATCHED ${state.fixed}/${state.quota}`, 12, 18);
 
   const g = state.gridlock ?? 0;
   const bw = 150;

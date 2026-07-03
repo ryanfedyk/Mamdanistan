@@ -287,35 +287,27 @@ export function MobileMap() {
   );
 
   return (
-    <div className="fixed inset-x-0 bottom-0 top-[64px] z-40 flex bg-secondary sm:top-[68px] lg:top-[92px] lg:pt-9">
-      {/* Desktop: a permanent left-docked panel. It always shows the directory,
-          and swaps to a briefing when a flag is picked (with a back link to the
-          list). Phones use the bottom sheets below instead. */}
-      <aside className="hidden h-full w-[360px] shrink-0 flex-col overflow-hidden border-r-2 border-outline bg-white lg:flex">
-        {active ? (
-          <>
-            <div className="flex shrink-0 items-center border-b-2 border-outline bg-secondary px-2 py-1.5">
-              <button
-                onClick={() => setActiveId(null)}
-                className="border-2 border-outline bg-white px-2 py-1 text-[11px] font-black uppercase text-primary brutal-shadow-sm"
-              >
-                ← All Wins
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <PinCard pin={active} bare />
-            </div>
-          </>
-        ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto">{directory}</div>
-        )}
-      </aside>
+    <div className="fixed inset-x-0 bottom-0 top-[64px] z-40 bg-secondary sm:top-[68px] lg:top-[92px]">
+      {/* Center the whole panel + map group so wide monitors get even gutters
+          on both sides instead of everything pinned to the left. */}
+      <div className="mx-auto flex h-full w-full max-w-[1260px]">
+        {/* Desktop: a permanent left-docked panel. It always shows the
+            directory, and swaps to a briefing (with its own close button) when
+            a flag is picked. Phones use the bottom sheets below instead. */}
+        <aside className="hidden h-full w-[360px] shrink-0 flex-col overflow-hidden border-r-2 border-outline bg-white lg:flex">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {active ? (
+              <PinCard pin={active} bare onClose={() => setActiveId(null)} />
+            ) : (
+              directory
+            )}
+          </div>
+        </aside>
 
-      {/* Map region — framed to a capped column, hugging the panel on its left
-          so there's no gap between them; wide monitors get an orange gutter on
-          the right rather than a blown-up full-bleed map. */}
-      <div className="relative min-w-0 flex-1">
-        <div className="relative h-full w-full max-w-[900px]">
+        {/* Map region — fills the rest of the centered group, hugging the
+            panel on its left so there's no gap between them. */}
+        <div className="relative min-w-0 flex-1">
+          <div className="relative h-full w-full">
           {/* Map surface — custom pan/pinch; native gestures off. */}
           <div
             ref={scrollRef}
@@ -388,6 +380,7 @@ export function MobileMap() {
               ⓘ Intel
             </button>
           )}
+          </div>
         </div>
       </div>
 

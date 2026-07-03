@@ -70,14 +70,14 @@ function NavBar() {
         aria-label="Mamdanistan — home"
         className="flex items-center gap-3 lg:gap-4"
       >
-        {/* Oversized mark — desktop only (lg+); overflows the bar downward.
-            Small screens show the wordmark instead. */}
-        <span className="relative hidden h-14 w-28 lg:block">
+        {/* Oversized mark — desktop only (lg+). Kept within the bar so it
+            doesn't overhang onto the map panel / page content below. */}
+        <span className="relative hidden h-14 w-16 lg:block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-mark.webp"
             alt=""
-            className="pointer-events-none absolute left-0 top-0 h-28 w-28 max-w-none drop-shadow-[3px_3px_0_#000]"
+            className="pointer-events-none absolute -top-1 left-0 h-[68px] w-[68px] max-w-none drop-shadow-[3px_3px_0_#000]"
           />
         </span>
         {/* Wordmark — always shown; it's the brand on small screens. */}

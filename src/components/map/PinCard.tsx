@@ -1,11 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import type { MapPin } from "@/lib/types";
 import { CATEGORY_COLORS, CATEGORY_GLYPHS } from "@/data/pins";
 import { getCabinet } from "@/data/games";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { StatusBanner } from "@/components/ui/StatusBanner";
+
+/** Pull an 11-char YouTube id out of a watch / embed / youtu.be / thumbnail URL. */
+function youtubeId(url?: string): string | null {
+  if (!url) return null;
+  const m = url.match(
+    /(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/)|youtu\.be\/|img\.youtube\.com\/vi\/)([\w-]{11})/,
+  );
+  return m ? m[1] : null;
+}
 
 /**
  * Localized card view pulled in when a map pin is clicked. Renders the
@@ -22,6 +32,7 @@ export function PinCard({
   bare?: boolean;
 }) {
   const color = CATEGORY_COLORS[pin.category];
+  const videoId = youtubeId(pin.image);
 
   return (
     <article className={bare ? "overflow-hidden" : "brutal-card overflow-hidden"}>
@@ -58,27 +69,36 @@ export function PinCard({
         )}
       </div>
 
-      {/* Embedded image (hot-linked). A broken/blocked URL hides the whole
-          figure so the card degrades cleanly. */}
-      {pin.image && (
-        <figure className="relative border-b-4 border-outline bg-background">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={pin.image}
-            alt={pin.imageAlt ?? pin.title}
-            loading="lazy"
-            onError={(e) => {
-              const fig = e.currentTarget.closest("figure");
-              if (fig) (fig as HTMLElement).style.display = "none";
-            }}
-            className="h-44 w-full object-cover"
-          />
-          {pin.imageCredit && (
-            <figcaption className="absolute bottom-0 right-0 bg-black/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-              {pin.imageCredit}
-            </figcaption>
-          )}
-        </figure>
+      {/* Media (hot-linked). YouTube-backed pins get a click-to-play embed;
+          everything else is a still. A broken/blocked URL degrades cleanly. */}
+      {videoId ? (
+        <LiteYouTube
+          id={videoId}
+          poster={pin.image!}
+          title={pin.imageAlt ?? pin.title}
+          credit={pin.imageCredit}
+        />
+      ) : (
+        pin.image && (
+          <figure className="relative border-b-4 border-outline bg-background">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={pin.image}
+              alt={pin.imageAlt ?? pin.title}
+              loading="lazy"
+              onError={(e) => {
+                const fig = e.currentTarget.closest("figure");
+                if (fig) (fig as HTMLElement).style.display = "none";
+              }}
+              className="h-44 w-full object-cover"
+            />
+            {pin.imageCredit && (
+              <figcaption className="absolute bottom-0 right-0 bg-black/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                {pin.imageCredit}
+              </figcaption>
+            )}
+          </figure>
+        )
       )}
 
       <div className="space-y-4 px-5 py-5">
@@ -132,6 +152,67 @@ export function PinCard({
         </div>
       </div>
     </article>
+  );
+}
+
+/** Lazy YouTube embed: shows the thumbnail + play button, and only mounts the
+ *  iframe on click — cheap on low-end phones, and a clean fallback if the embed
+ *  host is blocked (the poster + play affordance still render). */
+function LiteYouTube({
+  id,
+  poster,
+  title,
+  credit,
+}: {
+  id: string;
+  poster: string;
+  title: string;
+  credit?: string;
+}) {
+  const [playing, setPlaying] = useState(false);
+  return (
+    <div
+      className="relative border-b-4 border-outline bg-black"
+      style={{ aspectRatio: "16 / 9" }}
+    >
+      {playing ? (
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`}
+          title={title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="absolute inset-0 h-full w-full"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setPlaying(true)}
+          aria-label={`Play video: ${title}`}
+          className="group absolute inset-0 h-full w-full"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={poster}
+            alt={title}
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.style.visibility = "hidden";
+            }}
+            className="h-full w-full object-cover"
+          />
+          <span className="pointer-events-none absolute inset-0 grid place-items-center">
+            <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-white bg-[#FF0000] text-xl text-white shadow-brutal transition-transform group-hover:scale-110 group-active:scale-95">
+              ▶
+            </span>
+          </span>
+          {credit && (
+            <span className="absolute bottom-0 right-0 bg-black/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+              {credit}
+            </span>
+          )}
+        </button>
+      )}
+    </div>
   );
 }
 

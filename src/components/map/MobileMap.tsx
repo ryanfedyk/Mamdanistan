@@ -287,10 +287,11 @@ export function MobileMap() {
   );
 
   return (
-    <div className="fixed inset-x-0 bottom-0 top-[64px] z-40 bg-white sm:top-[68px] lg:top-[92px]">
+    <div className="fixed inset-x-0 bottom-0 top-[64px] z-40 bg-primary sm:top-[68px] lg:top-[92px]">
       {/* Center the whole panel + map group so wide monitors get even gutters
-          on both sides instead of everything pinned to the left. */}
-      <div className="mx-auto flex h-full w-full max-w-[1260px]">
+          on both sides instead of everything pinned to the left. On desktop a
+          crisp border frames the unit against the surrounding colour. */}
+      <div className="mx-auto flex h-full w-full max-w-[1260px] lg:border-x-2 lg:border-outline">
         {/* Desktop: a permanent left-docked panel. It always shows the
             directory, and swaps to a briefing (with its own close button) when
             a flag is picked. Phones use the bottom sheets below instead. */}

@@ -41,7 +41,7 @@ const LEGEND: Array<{ cat: WinCategory; label: string }> = [
 
 type Pointers = Map<number, { x: number; y: number }>;
 type Gesture =
-  | { mode: "pan"; lastX: number; lastY: number }
+  | { mode: "pan"; lastX: number; lastY: number; lastT: number }
   | { mode: "pinch"; dist: number; scale: number; fracX: number; fracY: number }
   | null;
 
@@ -58,6 +58,8 @@ export function MobileMap() {
   const scaleRef = useRef(scale);
   const ptrs = useRef<Pointers>(new Map());
   const gest = useRef<Gesture>(null);
+  const momRef = useRef(0); // rAF id for pan glide
+  const velRef = useRef({ x: 0, y: 0, t: 0 }); // last pan velocity (scroll px/ms)
 
   useEffect(() => {
     scaleRef.current = scale;
@@ -72,15 +74,17 @@ export function MobileMap() {
     setPlotMode(new URLSearchParams(window.location.search).has("plot"));
   }, []);
 
-  // Center the map on mount (nice on desktop where the window is wide).
+  // Open framed on central Manhattan (midtown / Central Park) rather than the
+  // upper boroughs — the point ~(34%, 42%) of the art, biased a touch above
+  // centre so it still reads above the mobile welcome sheet.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const cw = el.clientWidth;
     const contentW = Math.max(cw, cw * scaleRef.current);
     const contentH = contentW * ASPECT;
-    el.scrollLeft = (contentW - cw) / 2;
-    el.scrollTop = contentH * 0.14; // start on the upper boroughs
+    el.scrollLeft = contentW * 0.34 - cw / 2;
+    el.scrollTop = contentH * 0.42 - el.clientHeight * 0.42;
   }, []);
 
   // Desktop mouse-wheel zoom toward the cursor (non-passive so we can stop the
@@ -90,6 +94,7 @@ export function MobileMap() {
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      cancelAnimationFrame(momRef.current);
       const cur = scaleRef.current;
       const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, +(cur * (e.deltaY < 0 ? 1.12 : 1 / 1.12)).toFixed(3)));
       if (next === cur) return;
@@ -112,12 +117,14 @@ export function MobileMap() {
   }, []);
 
   const setZoom = (s: number) => {
+    cancelAnimationFrame(momRef.current);
     const clamped = Math.max(MIN_SCALE, Math.min(MAX_SCALE, +s.toFixed(2)));
     scaleRef.current = clamped;
     setScale(clamped);
   };
 
   const centerOnPin = (pin: MapPin) => {
+    cancelAnimationFrame(momRef.current); // don't fight a running glide
     const el = scrollRef.current;
     if (!el || !pin.mapPosition) return;
     const cw = el.clientWidth;
@@ -147,15 +154,47 @@ export function MobileMap() {
     }
   };
 
+  // Decaying inertial pan — a flick keeps gliding after the finger lifts.
+  const startGlide = (now: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    cancelAnimationFrame(momRef.current);
+    if (now - velRef.current.t > 60) return; // finger paused before lifting
+    let vx = velRef.current.x;
+    let vy = velRef.current.y;
+    const sp = Math.hypot(vx, vy);
+    if (sp < 0.05) return;
+    const CAP = 3.5; // px/ms — keep a hard flick sane
+    if (sp > CAP) {
+      vx = (vx / sp) * CAP;
+      vy = (vy / sp) * CAP;
+    }
+    let prev: number | null = null;
+    const step = (t: number) => {
+      if (prev === null) prev = t;
+      const dt = t - prev;
+      prev = t;
+      el.scrollLeft += vx * dt;
+      el.scrollTop += vy * dt;
+      const decay = Math.pow(0.94, dt / 16);
+      vx *= decay;
+      vy *= decay;
+      if (Math.hypot(vx, vy) > 0.02) momRef.current = requestAnimationFrame(step);
+    };
+    momRef.current = requestAnimationFrame(step);
+  };
+
   // ---- custom pan + pinch (map only) ----
   const onPointerDown = (e: React.PointerEvent) => {
+    cancelAnimationFrame(momRef.current); // stop any glide on touch
     dismissOnMap();
     const el = scrollRef.current;
     if (!el) return;
     el.setPointerCapture(e.pointerId);
     ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (ptrs.current.size === 1) {
-      gest.current = { mode: "pan", lastX: e.clientX, lastY: e.clientY };
+      gest.current = { mode: "pan", lastX: e.clientX, lastY: e.clientY, lastT: e.timeStamp };
+      velRef.current = { x: 0, y: 0, t: e.timeStamp };
     } else if (ptrs.current.size === 2) {
       startPinch();
     }
@@ -189,10 +228,15 @@ export function MobileMap() {
     if (!el || !g) return;
 
     if (g.mode === "pan" && ptrs.current.size === 1) {
-      el.scrollLeft -= e.clientX - g.lastX;
-      el.scrollTop -= e.clientY - g.lastY;
+      const dx = e.clientX - g.lastX;
+      const dy = e.clientY - g.lastY;
+      el.scrollLeft -= dx;
+      el.scrollTop -= dy;
+      const dt = Math.max(1, e.timeStamp - g.lastT);
+      velRef.current = { x: -dx / dt, y: -dy / dt, t: e.timeStamp };
       g.lastX = e.clientX;
       g.lastY = e.clientY;
+      g.lastT = e.timeStamp;
     } else if (g.mode === "pinch" && ptrs.current.size >= 2) {
       const pts = [...ptrs.current.values()];
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
@@ -211,13 +255,15 @@ export function MobileMap() {
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
+    const wasPan = gest.current?.mode === "pan";
     ptrs.current.delete(e.pointerId);
     if (ptrs.current.size === 0) {
       gest.current = null;
       setScale(scaleRef.current); // sync React (keeps +/- buttons in step)
+      if (wasPan) startGlide(e.timeStamp); // let a flick keep gliding
     } else if (ptrs.current.size === 1) {
       const [p] = [...ptrs.current.values()];
-      gest.current = { mode: "pan", lastX: p.x, lastY: p.y };
+      gest.current = { mode: "pan", lastX: p.x, lastY: p.y, lastT: e.timeStamp };
     }
   };
 

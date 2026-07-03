@@ -24,10 +24,13 @@ function youtubeId(url?: string): string | null {
 export function PinCard({
   pin,
   onClose,
+  onBack,
   bare = false,
 }: {
   pin: MapPin;
   onClose?: () => void;
+  /** Show a back arrow that returns to the previously-viewed card. */
+  onBack?: () => void;
   /** Drop the card border/shadow — for embedding inside a bottom sheet. */
   bare?: boolean;
 }) {
@@ -40,29 +43,40 @@ export function PinCard({
         className="flex items-start justify-between gap-3 border-b-4 border-outline px-5 py-4"
         style={{ backgroundColor: color }}
       >
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl" aria-hidden>
-              {CATEGORY_GLYPHS[pin.category]}
-            </span>
-            <h3 className="brutal-heading text-xl text-white drop-shadow-[2px_2px_0_#000]">
-              {pin.title}
-            </h3>
-          </div>
-          <p className="mt-1 text-xs font-black uppercase tracking-wide text-white">
-            {pin.neighborhood} · {pin.borough}
-          </p>
-          {pin.kind && (
-            <span className="mt-2 inline-block border-2 border-outline bg-white px-1.5 py-0.5 text-[10px] font-black uppercase text-black">
-              {pin.kind === "moment" ? "★ Moment" : "◆ Policy Win"}
-            </span>
+        <div className="flex min-w-0 items-start gap-2">
+          {onBack && (
+            <button
+              onClick={onBack}
+              aria-label="Back to previous win"
+              className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/20 text-lg text-white transition-colors hover:bg-white/35"
+            >
+              ‹
+            </button>
           )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl" aria-hidden>
+                {CATEGORY_GLYPHS[pin.category]}
+              </span>
+              <h3 className="brutal-heading text-xl text-white drop-shadow-[2px_2px_0_#000]">
+                {pin.title}
+              </h3>
+            </div>
+            <p className="mt-1 text-xs font-black uppercase tracking-wide text-white">
+              {pin.neighborhood} · {pin.borough}
+            </p>
+            {pin.kind && (
+              <span className="mt-2 inline-block border-2 border-outline bg-white px-1.5 py-0.5 text-[10px] font-black uppercase text-black">
+                {pin.kind === "moment" ? "★ Moment" : "◆ Policy Win"}
+              </span>
+            )}
+          </div>
         </div>
         {onClose && (
           <button
             onClick={onClose}
             aria-label="Close card"
-            className="grid h-9 w-9 place-items-center border-2 border-outline bg-white font-black text-black"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/20 text-lg font-black text-white transition-colors hover:bg-white/35"
           >
             ✕
           </button>
@@ -77,6 +91,7 @@ export function PinCard({
           poster={pin.image!}
           title={pin.imageAlt ?? pin.title}
           credit={pin.imageCredit}
+          focus={pin.imageFocus}
         />
       ) : (
         pin.image && (
@@ -90,7 +105,8 @@ export function PinCard({
                 const fig = e.currentTarget.closest("figure");
                 if (fig) (fig as HTMLElement).style.display = "none";
               }}
-              className="h-44 w-full object-cover"
+              className="h-52 w-full object-cover"
+              style={{ objectPosition: pin.imageFocus ?? "50% 22%" }}
             />
             {pin.imageCredit && (
               <figcaption className="absolute bottom-0 right-0 bg-black/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
@@ -165,11 +181,13 @@ function LiteYouTube({
   poster,
   title,
   credit,
+  focus,
 }: {
   id: string;
   poster: string;
   title: string;
   credit?: string;
+  focus?: string;
 }) {
   const [playing, setPlaying] = useState(false);
   return (
@@ -201,6 +219,7 @@ function LiteYouTube({
               e.currentTarget.style.visibility = "hidden";
             }}
             className="h-full w-full object-cover"
+            style={{ objectPosition: focus ?? "50% 50%" }}
           />
           <span className="pointer-events-none absolute inset-0 grid place-items-center">
             <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-white bg-[#FF0000] text-xl text-white shadow-brutal transition-transform group-hover:scale-110 group-active:scale-95">

@@ -48,6 +48,8 @@ type Drag = {
   onHandle: boolean;
   moved: boolean;
   mode: "idle" | "sheet" | "scroll";
+  pointerId: number; // captured lazily, on first move
+  captured: boolean;
 };
 
 export function BottomSheet({
@@ -126,10 +128,13 @@ export function BottomSheet({
       onHandle: source === "handle",
       moved: false,
       mode: "idle",
+      pointerId: e.pointerId,
+      captured: false,
     };
-    // Capture on the drag surface itself (not the child under the finger) so a
-    // drag never turns into a click on an inner button.
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    // NB: pointer capture is claimed lazily in `move` (first real movement), not
+    // here. Capturing on pointerdown would retarget the follow-up click to this
+    // surface and swallow taps on inner buttons/links; a stationary tap never
+    // moves, so it never captures and its click fires normally.
   };
 
   // A drag that moved must not also fire a click on an inner link/button.
@@ -148,7 +153,16 @@ export function BottomSheet({
     const dt = Math.max(1, e.timeStamp - d.t);
     d.vy = (y - d.y) / dt;
     const totalDy = y - d.y0; // down-positive
-    if (Math.abs(totalDy) > 3) d.moved = true;
+    if (Math.abs(totalDy) > 3) {
+      d.moved = true;
+      // Now that this is a real drag (not jittery tap), capture the pointer on
+      // the drag surface so it keeps tracking even if the finger strays off an
+      // inner element. Capturing earlier would swallow taps on inner buttons.
+      if (!d.captured) {
+        e.currentTarget.setPointerCapture?.(d.pointerId);
+        d.captured = true;
+      }
+    }
 
     if (d.mode === "idle") {
       if (Math.abs(totalDy) < 4) {

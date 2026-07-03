@@ -5,12 +5,13 @@ import Link from "next/link";
 import {
   fixTheCityRun,
   FIX_THE_CITY_RUN_DIMENSIONS,
+  MAX_LEVEL,
   type FixTheCityRunState,
 } from "@/games/fixTheCityRun";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { GameEngine } from "@/lib/types";
 
-type Hud = { score: number; phase: string; fixed: number; hits: number; quota: number };
+type Hud = { score: number; phase: string; fixed: number; hits: number; quota: number; level: number };
 
 /**
  * Fix the City — full-screen mobile cabinet (<lg). The Mayor-runner takes over
@@ -39,8 +40,9 @@ export function FixTheCityArcade({
     fixed: 0,
     hits: 0,
     quota: init.quota,
+    level: init.level,
   });
-  const [infoOpen, setInfoOpen] = useState(true);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const send = (intent: string) => {
     stateRef.current = engine.handleInput(stateRef.current, intent);
@@ -60,9 +62,17 @@ export function FixTheCityArcade({
         p.score === next.score &&
         p.phase === next.phase &&
         p.fixed === next.fixed &&
-        p.hits === next.hits
+        p.hits === next.hits &&
+        p.level === next.level
           ? p
-          : { score: next.score, phase: next.phase, fixed: next.fixed, hits: next.hits, quota: next.quota },
+          : {
+              score: next.score,
+              phase: next.phase,
+              fixed: next.fixed,
+              hits: next.hits,
+              quota: next.quota,
+              level: next.level,
+            },
       );
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -110,9 +120,14 @@ export function FixTheCityArcade({
     setInfoOpen(false);
     send("start");
   };
+  const startLevel = (n: number) => {
+    setInfoOpen(false);
+    send(`level:${n}`);
+  };
+  const nextLevel = () => send("next");
   const resetToAttract = () => {
     send("reset");
-    setInfoOpen(true);
+    setInfoOpen(false);
   };
 
   // Swipe up/down to change lanes; tap to start.
@@ -142,7 +157,9 @@ export function FixTheCityArcade({
         </Link>
         <span className="text-mamdani-ember">Mayor Run</span>
         {playing ? (
-          <span className="text-mamdani-mint">🛠 {hud.fixed}/{hud.quota}</span>
+          <span className="text-mamdani-mint">
+            L{hud.level} · 🛠 {hud.fixed}/{hud.quota}
+          </span>
         ) : (
           <button onClick={() => setInfoOpen(true)} className="text-mamdani-cyan hover:text-mamdani-mint">
             ⓘ Help
@@ -191,14 +208,14 @@ export function FixTheCityArcade({
       {/* Briefing sheet (attract). */}
       {infoOpen && !finished && (
         <BottomSheet variant="arcade" onClose={() => setInfoOpen(false)}>
-          <InfoContent onStart={startGame} />
+          <InfoContent onStart={startGame} onLevel={startLevel} />
         </BottomSheet>
       )}
 
       {/* Results sheet. */}
       {finished && (
         <BottomSheet variant="arcade" key={hud.phase} peek={0.62} onClose={resetToAttract}>
-          <ResultContent hud={hud} onAgain={startGame} />
+          <ResultContent hud={hud} onAgain={startGame} onNext={nextLevel} />
         </BottomSheet>
       )}
     </div>
@@ -221,7 +238,13 @@ function LaneBtn({ label, sub, onPress }: { label: string; sub: string; onPress:
   );
 }
 
-function InfoContent({ onStart }: { onStart: () => void }) {
+function InfoContent({
+  onStart,
+  onLevel,
+}: {
+  onStart: () => void;
+  onLevel: (n: number) => void;
+}) {
   return (
     <div className="space-y-3 px-4 py-3">
       <div>
@@ -230,12 +253,21 @@ function InfoContent({ onStart }: { onStart: () => void }) {
         </p>
         <h2 className="pixel-heading text-base text-mamdani-ember">Fix the City</h2>
       </div>
-      <button
-        onClick={onStart}
-        className="h-14 w-full rounded-md border-2 border-black bg-mamdani-mint font-pixel text-sm uppercase text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
-      >
-        🏃 Start the Shift
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={onStart}
+          className="h-14 flex-[1.4] rounded-md border-2 border-black bg-mamdani-mint font-pixel text-sm uppercase text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
+        >
+          🏃 Shift 1
+        </button>
+        <button
+          onClick={() => onLevel(2)}
+          className="h-14 flex-1 rounded-md border-2 border-black bg-mamdani-ember font-pixel text-[11px] uppercase leading-tight text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
+        >
+          🔥 Shift 2
+          <span className="mt-0.5 block text-[7px]">harder</span>
+        </button>
+      </div>
       <ul className="space-y-2 font-terminal text-lg text-mamdani-fog">
         <li>🏃 You&apos;re the Mayor — you jog down the street on your own.</li>
         <li>⬆️⬇️ Swipe up/down (or the buttons) to change lanes.</li>
@@ -253,16 +285,25 @@ function InfoContent({ onStart }: { onStart: () => void }) {
   );
 }
 
-function ResultContent({ hud, onAgain }: { hud: Hud; onAgain: () => void }) {
+function ResultContent({
+  hud,
+  onAgain,
+  onNext,
+}: {
+  hud: Hud;
+  onAgain: () => void;
+  onNext: () => void;
+}) {
   const won = hud.phase === "won";
+  const hasNext = won && hud.level < MAX_LEVEL;
   return (
     <div className="space-y-4 px-4 py-3">
       <div>
         <p className="font-pixel text-[8px] uppercase text-mamdani-fog">
-          {won ? "Shift complete" : "The city seized up"}
+          {won ? `Shift ${hud.level} complete` : "The city seized up"}
         </p>
         <h2 className={`pixel-heading text-lg ${won ? "text-mamdani-mint" : "text-mamdani-red"}`}>
-          {won ? "City Moving!" : "Gridlock"}
+          {won ? (hasNext ? "City Moving!" : "All Shifts Cleared!") : "Gridlock"}
         </h2>
       </div>
       <dl className="grid grid-cols-3 gap-2 text-center">
@@ -270,11 +311,19 @@ function ResultContent({ hud, onAgain }: { hud: Hud; onAgain: () => void }) {
         <Stat label="Jams" value={`${hud.hits}`} />
         <Stat label="Score" value={`${hud.score}`} />
       </dl>
+      {hasNext && (
+        <button
+          onClick={onNext}
+          className="h-14 w-full rounded-md border-2 border-black bg-mamdani-ember font-pixel text-sm uppercase text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
+        >
+          🔥 Shift {hud.level + 1} — Harder
+        </button>
+      )}
       <button
         onClick={onAgain}
         className="h-14 w-full rounded-md border-2 border-black bg-mamdani-mint font-pixel text-sm uppercase text-mamdani-ink shadow-pixel active:translate-y-[3px] active:shadow-none"
       >
-        ↻ Run It Back
+        ↻ {won ? "Replay Shift 1" : "Run It Back"}
       </button>
       <Link
         href="/arcade"

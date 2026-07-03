@@ -149,7 +149,13 @@ export function FixTheCityArcade({
   };
 
   return (
-    <div className="fixed inset-x-0 bottom-0 top-[60px] z-40 flex flex-col overflow-hidden bg-mamdani-ink lg:hidden">
+    // Hold-to-dash used to trigger text selection + the long-press context menu
+    // mid-run; kill selection, the iOS touch-callout, and the context menu across
+    // the whole game surface.
+    <div
+      onContextMenu={(e) => e.preventDefault()}
+      className="fixed inset-x-0 bottom-0 top-[60px] z-40 flex select-none flex-col overflow-hidden bg-mamdani-ink [-webkit-touch-callout:none] lg:hidden"
+    >
       {/* Floating top bar */}
       <div className="flex items-center justify-between px-3 py-2 font-pixel text-[10px] uppercase">
         <Link href="/arcade" className="text-mamdani-fog hover:text-mamdani-cyan">

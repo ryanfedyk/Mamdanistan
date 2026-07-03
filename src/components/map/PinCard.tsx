@@ -130,6 +130,8 @@ export function PinCard({
                   {ref.href ? (
                     <a
                       href={ref.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="underline decoration-2 hover:text-primary"
                     >
                       {ref.label}

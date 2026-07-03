@@ -235,20 +235,20 @@ export function MobileMap() {
   // welcome sheet.
   const directory = (
     <>
-      <div className="border-b-2 border-outline bg-primary px-4 py-2 text-white">
+      <div className="space-y-1 border-b-2 border-outline bg-primary px-5 py-4 text-white">
         <p className="text-[10px] font-black uppercase tracking-widest text-secondary">
           Live Uplink · NYC Command
         </p>
-        <h1 className="brutal-heading text-xl leading-none">The Grid</h1>
+        <h1 className="brutal-heading text-2xl leading-none">The Grid</h1>
       </div>
-      <div className="space-y-3 px-4 py-3">
-        <div className="space-y-2 border-2 border-outline bg-secondary/40 px-3 py-2">
-          <p className="text-sm font-bold text-on-surface">
+      <div className="space-y-4 px-5 py-5">
+        <div className="space-y-2.5 border-2 border-outline bg-secondary/40 px-4 py-3.5">
+          <p className="text-sm font-bold leading-relaxed text-on-surface">
             The Grid is a live tactical map of Mamdanistan — every flag is a
             confirmed material win for New Yorkers, from fare-free buses to the
             rent freeze to $0 inhalers.
           </p>
-          <p className="text-[13px] font-semibold text-on-surface/80">
+          <p className="text-[13px] font-semibold leading-relaxed text-on-surface/80">
             Drag to pan, pinch or scroll to zoom, and tap any flag on the map —
             or a win in the list below — to pull up its full briefing.
           </p>
@@ -258,7 +258,7 @@ export function MobileMap() {
             <li key={pin.id} className="border-b-2 border-outline/20 last:border-0">
               <button
                 onClick={() => open(pin.id)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-secondary"
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-secondary"
               >
                 <span
                   className="grid h-6 w-6 shrink-0 place-items-center border-2 border-outline text-xs"
@@ -287,7 +287,7 @@ export function MobileMap() {
   );
 
   return (
-    <div className="fixed inset-x-0 bottom-0 top-[64px] z-40 bg-secondary sm:top-[68px] lg:top-[92px]">
+    <div className="fixed inset-x-0 bottom-0 top-[64px] z-40 bg-white sm:top-[68px] lg:top-[92px]">
       {/* Center the whole panel + map group so wide monitors get even gutters
           on both sides instead of everything pinned to the left. */}
       <div className="mx-auto flex h-full w-full max-w-[1260px]">
@@ -295,7 +295,7 @@ export function MobileMap() {
             directory, and swaps to a briefing (with its own close button) when
             a flag is picked. Phones use the bottom sheets below instead. */}
         <aside className="hidden h-full w-[360px] shrink-0 flex-col overflow-hidden border-r-2 border-outline bg-white lg:flex">
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="hover-scroll min-h-0 flex-1 overflow-y-auto">
             {active ? (
               <PinCard pin={active} bare onClose={() => setActiveId(null)} />
             ) : (

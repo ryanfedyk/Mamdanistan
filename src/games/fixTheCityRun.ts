@@ -85,12 +85,20 @@ const HAZARD_WEIGHTS: Array<[CityHazardType, number]> = [
 ];
 const HAZARD_WEIGHT_TOTAL = HAZARD_WEIGHTS.reduce((s, [, w]) => s + w, 0);
 
-// Cleaning frames split into two tools. Only right-facing poses are used so the
-// Mayor never mirror-flips mid-repair (clean_0/1/4 face left; 2/3/5 face right,
-// matching the run cycle). The shovel has a single right-facing pose, so it gets
-// a small code-driven dig bob (see drawMayor) instead of a frame cycle.
-const SHOVEL_FRAMES = [3]; // gray-shovel dig, facing right
-const JACK_FRAMES = [2, 5]; // yellow-jackhammer buck, both facing right
+// Cleaning frames split into two tools. Each entry is [clean-frame index,
+// flip?]. The raw sprites face inconsistently (clean_0/1/2/4 face left,
+// clean_3/5 face right), so we mirror the odd ones out to make every repair
+// pose face RIGHT — matching the run cycle — while still giving each tool two
+// distinct frames to animate. Shovel = c3 (bent, planted) + c1 mirrored
+// (upright, lifting); jackhammer = c5 + c2 mirrored.
+const SHOVEL_FRAMES: Array<[number, boolean]> = [
+  [3, false],
+  [1, true],
+];
+const JACK_FRAMES: Array<[number, boolean]> = [
+  [5, false],
+  [2, true],
+];
 
 /* ------------------------------------------------------------------ *
  * Sprite loading (browser-only; vectors draw until an image is ready)
@@ -748,27 +756,27 @@ function drawMayor(ctx: CanvasRenderingContext2D, state: FixTheCityRunState) {
   }
 
   // Pick the animation frame: idle before the run, a shovel/jackhammer dig
-  // while patching, else the run cycle. We only ever use right-facing sprites,
-  // so the Mayor keeps a consistent heading — no mirroring, no flip.
+  // while patching, else the run cycle. Repair poses are normalized to face
+  // RIGHT (some are the left-facing sprite mirrored), so the Mayor keeps a
+  // consistent heading — no back-and-forth flip.
   let sp: Sprite;
-  let digBob = 0;
+  let flip = false;
   if (!playing) {
     sp = SPR.idle;
   } else if (repairing) {
     const haz = state.hazards.find((h) => h.id === state.repairId);
     const jack = haz ? cleaningTool(haz) === "jack" : false;
     const frames = jack ? JACK_FRAMES : SHOVEL_FRAMES;
-    sp = SPR.clean[frames[Math.floor(state.frame / 6) % frames.length]];
-    // The shovel is a single pose; give it a gentle up/down dig so it reads as
-    // active. (The jackhammer already animates across its two frames.)
-    if (!jack) digBob = (Math.sin(state.frame / 3) + 1) * 1.6;
+    const [idx, fl] = frames[Math.floor(state.frame / 6) % frames.length];
+    sp = SPR.clean[idx];
+    flip = fl;
   } else {
     sp = SPR.run[Math.floor(state.frame / (state.boost ? 3 : 5)) % SPR.run.length];
   }
 
   const H = LANE_H * 1.7;
-  const footY = cy + LANE_H * 0.36 + digBob;
-  if (!blit(ctx, sp, cx, footY, H, { anchorBottom: true })) {
+  const footY = cy + LANE_H * 0.36;
+  if (!blit(ctx, sp, cx, footY, H, { anchorBottom: true, flip })) {
     // Simple fallback body until the sprite loads.
     ctx.fillStyle = "#FF6B35";
     rrect(ctx, cx - 7, cy - 6, 14, 16, 4);

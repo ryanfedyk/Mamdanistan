@@ -54,7 +54,9 @@ const BILL_FRAMES: Record<BillionaireKind, number> = {
 // human scale next to Mamdani.
 const BILL_H: Record<BillionaireKind, number> = {
   elon: 62,
-  baron: 92,
+  // The monocle baron stands upright, so his full height read taller than the
+  // (horizontal) swimmers and towered over the cast — bring him to human scale.
+  baron: 70,
   snorkeler: 66,
   swan: 96,
 };
@@ -547,7 +549,9 @@ const BIG_POSES = new Set<Pose>([
   "lose",
   "win",
 ]);
-const FRAME_H_WATER = 118;
+// Zohran in/entering the water. Trimmed a notch so he doesn't loom over the
+// billionaires while still leaving his face clearly readable (esp. the win pose).
+const FRAME_H_WATER = 106;
 const FRAME_H_BOARD = 84;
 
 const zCache: Partial<Record<Pose, HTMLImageElement>> = {};

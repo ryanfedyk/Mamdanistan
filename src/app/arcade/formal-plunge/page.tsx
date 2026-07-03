@@ -52,6 +52,11 @@ export default function FormalPlungePage() {
       <h1 className="pixel-heading text-base text-mamdani-mint sm:text-2xl">
         {cab?.title ?? "Formal Plunge"}
       </h1>
+      <p className="max-w-2xl font-terminal text-lg text-mamdani-fog">
+        Suit up and swim laps for the people: dodge the pool-crashing
+        billionaires and thread the red tape before the AI data centers slurp
+        the water table dry. 🤿💧
+      </p>
 
       {/* Full-width game; the how-to lives once, below it. */}
       <div className="space-y-6">

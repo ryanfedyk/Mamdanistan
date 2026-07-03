@@ -6,14 +6,15 @@ import type { MapPin, WinCategory } from "@/lib/types";
  * Positions are percentages (0–100) of the map image. Add pins here; the map
  * and dashboard read straight from this array. No backend, no excuses.
  *
- * Card images are hot-linked from external hosts (YouTube thumbnails for the
- * moments, Wikimedia Commons for the policy stills) — a broken URL just drops
- * the image via PinCard's onError fallback.
+ * Card images + source links are hot-linked from external hosts (YouTube
+ * thumbnails for the moments; NYC.gov, news outlets, and press stills for the
+ * policy wins) — a broken URL just drops the image via PinCard's onError
+ * fallback.
  */
 export const MAP_PINS: MapPin[] = [
   /* ---- Moments -------------------------------------------------------- */
   {
-    id: "thomas-jefferson-pool",
+    id: "formal-plunge",
     title: "Thomas Jefferson Pool",
     tagline: "He wore the suit. He took the dive. The season is open.",
     description:
@@ -29,21 +30,21 @@ export const MAP_PINS: MapPin[] = [
     mapPosition: { x: 48.1, y: 28.3 },
     progress: 100,
     statusBanner: "POOL SEASON: UNLOCKED",
-    image: "https://img.youtube.com/vi/gXIRylGjuwo/hqdefault.jpg",
+    image: "https://img.youtube.com/vi/daL_SR_IZuE/hqdefault.jpg",
     imageAlt: "The Formal Plunge at Thomas Jefferson Pool",
     imageCredit: "via YouTube",
     references: [
       {
-        label: "Watch the Formal Plunge",
+        label: "Why he took the plunge",
         kind: "press",
-        href: "https://www.youtube.com/watch?v=gXIRylGjuwo",
+        href: "https://m.economictimes.com/news/new-updates/why-did-new-york-mayor-zohran-mamdani-jump-into-a-public-pool-fully-clothed-breaking-the-pool-dress-code-tradition-explained/articleshow/132045884.cms",
       },
       { label: "Suit-&-tie public swim", kind: "metric", value: "launched" },
       { label: "Outdoor pools open citywide", kind: "metric", value: "11 of 11" },
     ],
   },
   {
-    id: "williamsburg-bridge",
+    id: "bridge-repair",
     title: "Williamsburg Bridge",
     tagline: "The bumps are gone. The bike lane is glorious. You're welcome.",
     description:
@@ -59,15 +60,14 @@ export const MAP_PINS: MapPin[] = [
     mapPosition: { x: 58.9, y: 51.4 },
     progress: 92,
     statusBanner: "BUREAUCRACY LEVEL: DEFEATED",
-    image:
-      "https://commons.wikimedia.org/wiki/Special:FilePath/Williamsburg%20Bridge.jpg",
+    image: "https://img.youtube.com/vi/owzcyCMvz-Y/hqdefault.jpg",
     imageAlt: "The Williamsburg Bridge over the East River",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via YouTube",
     references: [
       {
-        label: "Hands-on infrastructure fixes",
+        label: "Streetsblog · grab a shovel",
         kind: "press",
-        href: "https://www.youtube.com/watch?v=gXIRylGjuwo",
+        href: "https://nyc.streetsblog.org/2026/01/06/grab-a-shovel-mayor-mamdani-begins-fix-of-williamsburg-bridge-shitshow",
       },
       { label: "Potholes patched on approach", kind: "metric", value: "340+" },
       { label: "Protected bike lane repaved", kind: "metric", value: "1.3 mi" },
@@ -85,7 +85,7 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Citywide",
     category: "campaign",
     kind: "moment",
-    mapPosition: { x: 53.1, y: 67.9 },
+    mapPosition: { x: 50.7, y: 68.4 },
     progress: 100,
     statusBanner: "INCUMBENTS: UPSET",
     image: "https://img.youtube.com/vi/pHeeNJ7YdEo/hqdefault.jpg",
@@ -93,9 +93,9 @@ export const MAP_PINS: MapPin[] = [
     imageCredit: "via YouTube",
     references: [
       {
-        label: "Watch the night unfold",
+        label: "Guardian · primary results",
         kind: "press",
-        href: "https://www.youtube.com/watch?v=pHeeNJ7YdEo",
+        href: "https://www.theguardian.com/us-news/2026/jun/23/new-york-primary-results-house",
       },
       { label: "Congressional upsets", kind: "metric", value: "3-for-3" },
     ],
@@ -112,7 +112,7 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Jackson Heights",
     category: "culture",
     kind: "moment",
-    mapPosition: { x: 62.3, y: 41.5 },
+    mapPosition: { x: 62.1, y: 41.3 },
     progress: 100,
     statusBanner: "BARS → BILLS",
     image: "https://img.youtube.com/vi/Lc9jD6LU-08/hqdefault.jpg",
@@ -120,9 +120,9 @@ export const MAP_PINS: MapPin[] = [
     imageCredit: "via YouTube",
     references: [
       {
-        label: "Watch the story",
+        label: "Guardian · Mr. Cardamom",
         kind: "press",
-        href: "https://www.youtube.com/watch?v=Lc9jD6LU-08",
+        href: "https://www.theguardian.com/music/2019/may/10/mr-cardamom-madhur-jaffrey-nani-video",
       },
       { label: "Origin arc", kind: "metric", value: "rap → reform" },
     ],
@@ -139,17 +139,17 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Astoria",
     category: "campaign",
     kind: "moment",
-    mapPosition: { x: 59.4, y: 37.5 },
+    mapPosition: { x: 59.4, y: 37.8 },
     progress: 100,
     statusBanner: "SMALL DOLLARS: MIGHTY",
-    image: "https://img.youtube.com/vi/pHeeNJ7YdEo/hqdefault.jpg",
+    image: "https://img.youtube.com/vi/h-hmxt6NdMg/hqdefault.jpg",
     imageAlt: "Grassroots small-dollar donations",
     imageCredit: "via YouTube",
     references: [
       {
-        label: "Watch the field report",
+        label: "CBS · $3M transition fund",
         kind: "press",
-        href: "https://www.youtube.com/watch?v=pHeeNJ7YdEo",
+        href: "https://www.cbsnews.com/newyork/news/zohran-mamdani-transition-expenses-fundraising-3-million/",
       },
       { label: "Funding engine", kind: "metric", value: "grassroots" },
     ],
@@ -174,9 +174,9 @@ export const MAP_PINS: MapPin[] = [
     imageCredit: "via YouTube",
     references: [
       {
-        label: "Watch the ground game",
-        kind: "press",
-        href: "https://www.youtube.com/watch?v=pHeeNJ7YdEo",
+        label: "Citizens Union report (PDF)",
+        kind: "article",
+        href: "https://citizensunion.org/wp-content/uploads/2025/08/Citizens-Union-How-Big-Money-Lost-and-Small-Donors-Won-in-the-2025-NYC-Primary.pdf",
       },
       { label: "Volunteers", kind: "metric", value: "100,000+" },
     ],
@@ -201,9 +201,9 @@ export const MAP_PINS: MapPin[] = [
     imageCredit: "via YouTube",
     references: [
       {
-        label: "Watch the origin",
-        kind: "press",
-        href: "https://www.youtube.com/watch?v=pHeeNJ7YdEo",
+        label: "r/Cricket · the origin",
+        kind: "article",
+        href: "https://www.reddit.com/r/Cricket/comments/1oq8jxh/new_yorks_new_mayor_zohran_k_mamdani_once_played/",
       },
       { label: "Origin", kind: "metric", value: "school club" },
     ],
@@ -220,17 +220,17 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Canyon of Heroes",
     category: "culture",
     kind: "moment",
-    mapPosition: { x: 49.2, y: 71.5 },
+    mapPosition: { x: 47.9, y: 69.1 },
     progress: 100,
     statusBanner: "TITLE: CELEBRATED",
-    image: "https://img.youtube.com/vi/WrT1UwRdYxs/hqdefault.jpg",
+    image: "https://img.youtube.com/vi/sdQXhisDTtA/hqdefault.jpg",
     imageAlt: "Championship ticker-tape parade",
     imageCredit: "via YouTube",
     references: [
       {
-        label: "Watch the parade",
-        kind: "press",
-        href: "https://www.youtube.com/watch?v=WrT1UwRdYxs",
+        label: "NYC.gov · parade & ceremony",
+        kind: "article",
+        href: "https://www.nyc.gov/mayors-office/news/2026/06/mayor-mamdani-announces-ticker-tape-parade-and-city-hall-ceremon",
       },
       { label: "Ceremony", kind: "metric", value: "City Hall" },
     ],
@@ -250,14 +250,14 @@ export const MAP_PINS: MapPin[] = [
     mapPosition: { x: 53.6, y: 33.5 },
     progress: 100,
     statusBanner: "RESIDENCY: REMIXED",
-    image: "https://img.youtube.com/vi/WrT1UwRdYxs/hqdefault.jpg",
+    image: "https://img.youtube.com/vi/SJzK8Ih6P8g/hqdefault.jpg",
     imageAlt: "Gracie Mansion transition",
     imageCredit: "via YouTube",
     references: [
       {
-        label: "Watch the transition",
+        label: "CBS · Gracie Mansion",
         kind: "press",
-        href: "https://www.youtube.com/watch?v=WrT1UwRdYxs",
+        href: "https://www.cbsnews.com/newyork/news/zohran-mamdani-gracie-mansion/",
       },
       { label: "Residency", kind: "metric", value: "reimagined" },
     ],
@@ -274,7 +274,7 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Citywide Donors",
     category: "campaign",
     kind: "moment",
-    mapPosition: { x: 45.5, y: 67.7 },
+    mapPosition: { x: 48.3, y: 67.2 },
     progress: 100,
     statusBanner: "SMALL DONORS: CAPPED OUT",
     image: "https://img.youtube.com/vi/pHeeNJ7YdEo/hqdefault.jpg",
@@ -282,9 +282,9 @@ export const MAP_PINS: MapPin[] = [
     imageCredit: "via YouTube",
     references: [
       {
-        label: "Watch the breakdown",
-        kind: "press",
-        href: "https://www.youtube.com/watch?v=pHeeNJ7YdEo",
+        label: "Citizens Union report (PDF)",
+        kind: "article",
+        href: "https://citizensunion.org/wp-content/uploads/2025/08/Citizens-Union-How-Big-Money-Lost-and-Small-Donors-Won-in-the-2025-NYC-Primary.pdf",
       },
       { label: "Primary limit", kind: "metric", value: "$8M small-dollar" },
     ],
@@ -309,12 +309,12 @@ export const MAP_PINS: MapPin[] = [
     progress: 35,
     statusBanner: "FARE BOX: DECOMMISSIONED",
     image:
-      "https://commons.wikimedia.org/wiki/Special:FilePath/MTA%20Bus%20New%20Flyer.jpg",
+      "https://s7d2.scene7.com/is/image/TWCNews/mamdani_lieber_flynn_buses_Cropped?wid=1250&hei=703&$wide-bg$",
     imageAlt: "A fare-free MTA city bus",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via Spectrum News NY1",
     references: [
       {
-        label: "100 days: promising progress",
+        label: "Rosa Lux · 100 days",
         kind: "article",
         href: "https://rosalux.nyc/100-days-of-mayor-mamdani-promising-progress/",
       },
@@ -334,19 +334,19 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Stabilized Units Citywide",
     category: "housing",
     kind: "policy",
-    mapPosition: { x: 57.1, y: 64.2 },
+    mapPosition: { x: 55.2, y: 64.7 },
     gameSlug: "landlord-invaders",
     progress: 20,
     statusBanner: "RENT: FROZEN SOLID",
     image:
-      "https://commons.wikimedia.org/wiki/Special:FilePath/Brooklyn%20brownstones.jpg",
+      "https://preview.redd.it/mamdanis-rent-freeze-is-approved-by-new-york-city-board-v0-sc9oix6i2x9h1.png?width=1080&crop=smart&auto=webp&s=b33fadba527841154a2d5bccdf916598b6bdc5ee",
     imageAlt: "Rent-stabilized apartment rowhouses",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via Reddit",
     references: [
       {
-        label: "100 days: promising progress",
+        label: "NYT · rent-freeze vote",
         kind: "press",
-        href: "https://rosalux.nyc/100-days-of-mayor-mamdani-promising-progress/",
+        href: "https://www.nytimes.com/2026/06/25/nyregion/nyc-rent-freeze-vote-mamdani.html",
       },
       { label: "Lease increases approved", kind: "metric", value: "0%" },
       { label: "Stabilized units protected", kind: "metric", value: "1,000,000" },
@@ -369,14 +369,15 @@ export const MAP_PINS: MapPin[] = [
     gameSlug: "toddler-tycoon",
     progress: 15,
     statusBanner: "CHILDCARE: UNIVERSAL",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Preschool.jpg",
+    image:
+      "https://www.nyc.gov/adobe/dynamicmedia/deliver/dm-aid--911cb3e0-19be-4b32-8217-875ffc940d0d/mayor-mamdani---governor-hochul-to-launch-free-child-care-for-tw--1-jpg.webp?preferwebp=true",
     imageAlt: "A universal free childcare classroom",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via NYC.gov",
     references: [
       {
-        label: "Mayor's 100 days: the agenda",
+        label: "NYC.gov · free child care",
         kind: "article",
-        href: "https://www.nyc.gov/content/100days/pages/",
+        href: "https://www.nyc.gov/mayors-office/news/2026/01/mayor-mamdani---governor-hochul-to-launch-free-child-care-for-tw",
       },
       { label: "3-K & 2-Care", kind: "metric", value: "universal" },
       { label: "Out-of-pocket cost", kind: "metric", value: "$0" },
@@ -394,18 +395,19 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Citywide Roadways",
     category: "infrastructure",
     kind: "policy",
-    mapPosition: { x: 52.2, y: 38.9 },
+    mapPosition: { x: 52.4, y: 38.9 },
     gameSlug: "asphalt-attack",
     progress: 78,
     statusBanner: "BUREAUCRACY LEVEL: DEFEATED",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Pothole.jpg",
+    image:
+      "https://www.nyc.gov/mayors-office/news/2026/04/mayor-mamdani-fills-100-000th-pothole-in-first-100-days/_jcr_content/root/container_481968979/container/initialContent/image.coreimg.jpeg/1775501424772/mayor-mamdani-fills-100-000th-pothole-in-first-100-days--1.jpeg",
     imageAlt: "A freshly patched pothole",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via NYC.gov",
     references: [
       {
-        label: "Mayor's 100 days: the agenda",
+        label: "NYC.gov · 100,000th pothole",
         kind: "article",
-        href: "https://www.nyc.gov/content/100days/pages/",
+        href: "https://www.nyc.gov/mayors-office/news/2026/04/mayor-mamdani-fills-100-000th-pothole-in-first-100-days",
       },
       { label: "Hazards patched", kind: "metric", value: "165,000" },
       { label: "Civics rescued", kind: "metric", value: "countless" },
@@ -423,18 +425,18 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Citywide Payrolls",
     category: "labor",
     kind: "policy",
-    mapPosition: { x: 41.6, y: 71.4 },
+    mapPosition: { x: 44.1, y: 71.3 },
     progress: 25,
     statusBanner: "WAGE FLOOR: RISING",
     image:
-      "https://commons.wikimedia.org/wiki/Special:FilePath/Fight%20for%2015%20rally.jpg",
+      "https://cdn.cityandstateny.com/media/img/cd/2025/02/13/Zohran_Mamdani_Uri_Thier/860x394.jpg?1739487042",
     imageAlt: "Workers rallying for a higher minimum wage",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via City & State NY",
     references: [
       {
-        label: "Mayor's 100 days: the agenda",
+        label: "City & State · $30/30 plan",
         kind: "article",
-        href: "https://www.nyc.gov/content/100days/pages/",
+        href: "https://www.cityandstateny.com/policy/2025/02/mamdani-unveils-30-30-minimum-wage-push-part-mayoral-campaign/403015/",
       },
       { label: "Target wage floor", kind: "metric", value: "$30/hr" },
       { label: "Full phase-in", kind: "metric", value: "by 2030" },
@@ -456,14 +458,14 @@ export const MAP_PINS: MapPin[] = [
     progress: 30,
     statusBanner: "PRICE GOUGING: CAPPED",
     image:
-      "https://commons.wikimedia.org/wiki/Special:FilePath/Grocery%20store.jpg",
+      "https://www.nyc.gov/adobe/dynamicmedia/deliver/dm-aid--bfc4d0c0-6190-4701-84f0-e6ca5035b733/mayor-mamdani-announces-la-marqueta-as-first-site-identified-for--1-jpg.webp?preferwebp=true",
     imageAlt: "A neighborhood grocery cooperative",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via NYC.gov",
     references: [
       {
-        label: "Mayor's 100 days: the agenda",
+        label: "NYC.gov · La Marqueta site",
         kind: "article",
-        href: "https://www.nyc.gov/content/100days/pages/",
+        href: "https://www.nyc.gov/mayors-office/news/2026/04/mayor-mamdani-announces-la-marqueta-as-first-site-identified-for",
       },
       { label: "Cost ceilings", kind: "metric", value: "non-profit" },
     ],
@@ -484,14 +486,14 @@ export const MAP_PINS: MapPin[] = [
     progress: 60,
     statusBanner: "COPAY: ABOLISHED",
     image:
-      "https://commons.wikimedia.org/wiki/Special:FilePath/Asthma%20inhaler.jpg",
+      "https://cdn.britannica.com/68/274768-050-25BE2F57/Zohran-Mamdani-Democratic-nominee-New-York-City-mayor-campaigning-April-2025.jpg",
     imageAlt: "A no-cost asthma inhaler",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via Britannica",
     references: [
       {
-        label: "Mayor's 100 days: the agenda",
+        label: "NYC.gov · enrollment push",
         kind: "article",
-        href: "https://www.nyc.gov/content/100days/pages/",
+        href: "https://www.nyc.gov/mayors-office/news/2026/07/mayor-mamdani--nyc-health-agencies-intensify-enrollment-in-low--",
       },
       { label: "Copay", kind: "metric", value: "$0" },
     ],
@@ -512,14 +514,14 @@ export const MAP_PINS: MapPin[] = [
     progress: 15,
     statusBanner: "PUBLIC HOMES: FUNDED",
     image:
-      "https://commons.wikimedia.org/wiki/Special:FilePath/NYCHA%20housing.jpg",
+      "https://newyorkyimby.com/wp-content/uploads/2022/01/1225-Gerard-Avenue-Concourse-The-Bronx.jpg",
     imageAlt: "Public social housing",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via New York YIMBY",
     references: [
       {
-        label: "Mayor's 100 days: the agenda",
+        label: "NYC.gov · River Commons",
         kind: "article",
-        href: "https://www.nyc.gov/content/100days/pages/",
+        href: "https://www.nyc.gov/mayors-office/news/2026/06/mayor-mamdani-breaks-ground-on--255-million-river-commons-develo",
       },
       { label: "Commitment", kind: "metric", value: "$70B" },
       { label: "Procurement horizon", kind: "metric", value: "10 years" },
@@ -541,14 +543,14 @@ export const MAP_PINS: MapPin[] = [
     progress: 40,
     statusBanner: "CAMPUSES: ELECTRIFIED",
     image:
-      "https://commons.wikimedia.org/wiki/Special:FilePath/Rooftop%20solar%20panels.jpg",
+      "https://www.thenation.com/wp-content/uploads/2025/04/Zohran-Mamdani-AFP-Getty.jpg",
     imageAlt: "Rooftop solar panels on a school",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via The Nation",
     references: [
       {
-        label: "Mayor's 100 days: the agenda",
+        label: "The Nation · green schools",
         kind: "article",
-        href: "https://www.nyc.gov/content/100days/pages/",
+        href: "https://www.thenation.com/article/environment/zohran-mamdani-green-schools-plan-climate/",
       },
       { label: "Campuses upgraded", kind: "metric", value: "50" },
     ],
@@ -565,17 +567,17 @@ export const MAP_PINS: MapPin[] = [
     neighborhood: "Consumer Protection",
     category: "consumer",
     kind: "policy",
-    mapPosition: { x: 49.5, y: 64.2 },
+    mapPosition: { x: 49.8, y: 66.2 },
     progress: 55,
     statusBanner: "HIDDEN FEES: BANNED",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Receipt.jpg",
+    image: "https://img.youtube.com/vi/F-doQOgXjxM/hqdefault.jpg",
     imageAlt: "An all-in price receipt",
-    imageCredit: "via Wikimedia Commons",
+    imageCredit: "via YouTube",
     references: [
       {
-        label: "Mayor's 100 days: the agenda",
+        label: "NYC.gov · junk-fee ban",
         kind: "article",
-        href: "https://www.nyc.gov/content/100days/pages/",
+        href: "https://www.nyc.gov/mayors-office/news/2026/01/mamdani-administration-bans-hotel-hidden-fees-and-unexpected-cre",
       },
       { label: "Pricing", kind: "metric", value: "all-in" },
       { label: "Hidden fees", kind: "metric", value: "banned" },

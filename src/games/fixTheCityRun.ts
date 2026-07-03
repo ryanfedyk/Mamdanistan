@@ -36,6 +36,10 @@ const PX = 120; // Mayor's fixed screen x
 const RUN_SPEED = 130; // world px/sec the Mayor jogs
 const SPRINT_SPEED = 220; // hold DASH to push forward and build a buffer
 const CAR_SPEED = 125; // chaser speed — a tight race the Mayor just edges (DASH to pull ahead)
+const ZIP_SPEED = 340; // once its pothole is patched, a car floors it and zips off-screen
+const CAR_ACCEL = 520; // how fast a car speeds up toward its target
+const CAR_BRAKE = 900; // how fast it sheds speed to keep a gap
+const CAR_GAP = 58; // min world-px spacing so cars queue instead of overlapping
 const CAR_ENTER = 34; // cars always enter this far off the left edge (never pop in)
 const REACH = 26; // how close (world px) to a hazard to work on it
 const REPAIR_TIME = 0.5; // seconds parked on a pothole to patch it
@@ -168,6 +172,7 @@ export interface RunCar {
   worldX: number;
   lane: number;
   crashed: boolean;
+  speed: number; // current world px/sec (eases toward cruise / zip)
 }
 export interface FixTheCityRunState extends BaseGameState {
   mayorX: number;
@@ -212,7 +217,13 @@ function spawnPair(
   if (s.hazards.some((h) => h.lane === lane && Math.abs(h.worldX - worldX) < 130)) return null;
   const hazard: RunHazard = { id: s.nextId, worldX, lane, type: pickType(), fixed: false, pop };
   // The chaser always enters from off the left edge, never mid-screen.
-  const car: RunCar = { hazId: s.nextId, worldX: s.mayorX - PX - CAR_ENTER, lane, crashed: false };
+  const car: RunCar = {
+    hazId: s.nextId,
+    worldX: s.mayorX - PX - CAR_ENTER,
+    lane,
+    crashed: false,
+    speed: CAR_SPEED,
+  };
   return { hazard, car };
 }
 
@@ -245,8 +256,8 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
         { id: 2, worldX: PX + 520, lane: 3, type: "construction", fixed: false, pop: 1 },
       ],
       cars: [
-        { hazId: 1, worldX: PX - PX - CAR_ENTER, lane: 1, crashed: false },
-        { hazId: 2, worldX: PX - PX - CAR_ENTER, lane: 3, crashed: false },
+        { hazId: 1, worldX: PX - PX - CAR_ENTER, lane: 1, crashed: false, speed: CAR_SPEED },
+        { hazId: 2, worldX: PX - PX - CAR_ENTER, lane: 3, crashed: false, speed: CAR_SPEED },
       ],
       quota: QUOTA,
       fixed: 0,
@@ -357,25 +368,45 @@ export const fixTheCityRun: GameEngine<FixTheCityRunState> = {
     }
     const cam = mayorX - PX;
 
-    // Chaser cars roll toward their potholes.
+    // Chaser cars roll toward their potholes, keep a gap so they queue instead
+    // of overlapping, and floor it (zip off-screen) once their pothole is gone.
     const nextCars: RunCar[] = [];
     for (const c of cars) {
       if (c.crashed) {
-        if (c.worldX > cam - 80) nextCars.push(c); // linger until off-screen left
+        if (c.worldX > cam - 90) nextCars.push(c); // pile lingers until off-screen left
         continue;
       }
       const haz = hazards.find((h) => h.id === c.hazId);
+      const chasing = !!haz && !haz.fixed;
+
+      // Cruise toward the pothole; once it's patched (or never ours), zip.
+      let goal = chasing ? CAR_SPEED : ZIP_SPEED;
+
+      // Don't rear-end the nearest car/pile ahead in the same lane.
+      let lead = Infinity;
+      for (const o of cars) {
+        if (o === c || o.lane !== c.lane) continue;
+        const d = o.worldX - c.worldX;
+        if (d > 0 && d < lead) lead = d;
+      }
+      if (lead < CAR_GAP) goal = 0;
+      else if (lead < CAR_GAP * 2) goal = Math.min(goal, CAR_SPEED * 0.85);
+
+      const rate = goal >= c.speed ? CAR_ACCEL : CAR_BRAKE;
+      const speed = c.speed + Math.max(-rate * dt, Math.min(rate * dt, goal - c.speed));
       const prevX = c.worldX;
-      const newX = prevX + CAR_SPEED * dt;
-      if (haz && !haz.fixed && prevX < haz.worldX && newX >= haz.worldX) {
+      const newX = prevX + speed * dt;
+
+      if (chasing && prevX < haz!.worldX && newX >= haz!.worldX) {
         // Lost the race → the car piles into the pothole.
         gridlock = Math.min(GRIDLOCK_MAX, gridlock + JAM_HIT);
         hits += 1;
-        hazards = hazards.filter((h) => h.id !== haz.id);
-        nextCars.push({ ...c, worldX: haz.worldX, crashed: true });
+        hazards = hazards.filter((h) => h.id !== haz!.id);
+        nextCars.push({ ...c, worldX: haz!.worldX, crashed: true, speed: 0 });
         continue;
       }
-      if (newX < mayorX + WIDTH) nextCars.push({ ...c, worldX: newX });
+      // Keep until it has zipped a little past the right edge.
+      if (newX - cam < WIDTH + 90) nextCars.push({ ...c, worldX: newX, speed });
     }
     cars = nextCars;
 

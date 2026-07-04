@@ -237,11 +237,38 @@ function LiteYouTube({
   );
 }
 
-/** CTA linking a win to its arcade mission. Falls back to the hub for
- *  games that aren't built yet (shown as "coming soon"). */
+/** CTA linking a win to its arcade mission. Games with poster art get the
+ *  full promo treatment; the rest keep the plain button (and games that
+ *  aren't built yet point at the hub). */
 function MissionLink({ slug }: { slug: string }) {
   const cabinet = getCabinet(slug);
   const href = cabinet ? `/arcade/${slug}` : "/arcade";
+  if (cabinet?.hero) {
+    return (
+      <Link
+        href={href}
+        className="group block overflow-hidden border-2 border-outline bg-black brutal-shadow"
+      >
+        <figure className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={cabinet.hero}
+            alt={`${cabinet.title} — play the mission`}
+            loading="lazy"
+            className="w-full [image-rendering:pixelated] transition-transform duration-200 group-hover:scale-[1.03]"
+          />
+          <figcaption className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/75 px-3 py-1.5">
+            <span className="text-sm font-black uppercase text-white">
+              Mission: {cabinet.title}
+            </span>
+            <span className="border-2 border-outline bg-primary px-2 py-0.5 text-xs font-black uppercase text-white">
+              ▶ Play
+            </span>
+          </figcaption>
+        </figure>
+      </Link>
+    );
+  }
   return (
     <Link
       href={href}

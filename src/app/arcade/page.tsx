@@ -43,8 +43,9 @@ export default function ArcadePage() {
         </div>
       </header>
 
+      {/* Only finished cabinets make the floor; prototypes stay in the shop. */}
       <div className="grid gap-5 sm:grid-cols-2">
-        {ARCADE_CABINETS.map((cab) => (
+        {ARCADE_CABINETS.filter((cab) => cab.status === "playable").map((cab) => (
           <Link
             key={cab.id}
             href={`/arcade/${cab.id}`}

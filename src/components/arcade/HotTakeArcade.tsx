@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   INTERVIEW_QUESTIONS,
@@ -12,38 +12,61 @@ import {
 } from "@/data/interview";
 
 /**
- * "HOT TAKE" — a tall, mobile-first broadcast set. The Mayor sits at the news
- * desk and *animates as he speaks*: he listens while the reporter asks, then
- * reacts with the pose that matches your answer — gesturing on-message, mulling
- * a dodge, or blowing up when he takes the bait. Pixel-art frames (sliced from
- * the uploaded sheet) are swapped on a timer over the studio background.
+ * "HOT TAKE" — a tall, mobile-first broadcast set. The Mayor sits behind the
+ * news desk and animates on KEY MOMENTS rather than looping constantly: each
+ * state change plays a short burst of frames and then settles on a hold pose,
+ * with an occasional idle shift so he stays alive without a steady drumbeat.
  *
- * The interview logic (questions, Momentum vs Noise) is shared with the classic
- * cabinet via @/data/interview.
+ * The interview logic (questions, Momentum vs Noise) is shared with
+ * @/data/interview; answer order is shuffled per question so the on-message
+ * pick isn't always the first button.
  */
 
 /* ---- Mayor animation clips ------------------------------------------- */
 const F = (n: string) => `/sprites/hot-take/${n}.webp`;
 type ClipName =
-  | "neutral"
   | "listen"
   | "think"
-  | "speak"
   | "speakgest"
   | "smiling"
   | "commgest";
 
-const CLIPS: Record<ClipName, { frames: string[]; fps: number }> = {
-  neutral: { frames: ["neutral"], fps: 1 },
-  listen: { frames: ["listen_0", "listen_1", "listen_2", "listen_3"], fps: 2.4 },
-  think: { frames: ["think_0", "think_1", "think_2"], fps: 3 },
-  speak: { frames: ["speak_0", "speak_1", "speak_2", "speak_3", "speak_4", "speak_5"], fps: 7 },
-  speakgest: { frames: ["speakgest_0", "speakgest_1", "speakgest_2", "speakgest_3"], fps: 4.5 },
-  smiling: { frames: ["smiling_0", "smiling_1", "smiling_2", "smiling_3"], fps: 2.4 },
-  commgest: { frames: ["commgest_0", "commgest_1", "commgest_2", "commgest_3"], fps: 5 },
+/** play: burst shown once on entering the state (ends on the hold pose).
+ *  step: ms per burst frame. idle: pool for the occasional resting shift. */
+const CLIPS: Record<ClipName, { play: string[]; step: number; idle: string[] }> = {
+  // The press is asking — glance around, settle front and hold.
+  listen: {
+    play: ["listen_1", "listen_3", "listen_0"],
+    step: 520,
+    idle: ["listen_0", "listen_1", "listen_2", "listen_3"],
+  },
+  // Non-committal dodge — hand comes up to the chin and stays there.
+  think: {
+    play: ["think_0", "think_2", "think_1"],
+    step: 480,
+    idle: ["think_1", "think_2"],
+  },
+  // On-message answer — confident talking gestures, ends on the thumbs-up.
+  speakgest: {
+    play: ["speakgest_0", "speakgest_1", "speakgest_2", "speakgest_3"],
+    step: 420,
+    idle: ["speakgest_3", "speak_5"],
+  },
+  // Intro / victory — warm and settled.
+  smiling: {
+    play: ["smiling_2", "smiling_1"],
+    step: 520,
+    idle: ["smiling_0", "smiling_1", "smiling_2", "smiling_3"],
+  },
+  // Took the bait / gameover — blows up, ends pointing at the desk.
+  commgest: {
+    play: ["commgest_2", "commgest_3", "commgest_1", "commgest_0"],
+    step: 420,
+    idle: ["commgest_0", "commgest_1"],
+  },
 };
 const ALL_FRAMES = Array.from(
-  new Set(Object.values(CLIPS).flatMap((c) => c.frames)),
+  new Set(Object.values(CLIPS).flatMap((c) => [...c.play, ...c.idle])),
 );
 
 /** Which pose the Mayor strikes for a given answer type. */
@@ -63,7 +86,19 @@ interface State {
   onMessage: number;
   reaction: InterviewOption | null;
   failReason: string | null;
+  /** Shuffled option order for the current question. */
+  order: number[];
 }
+
+function shuffled(n: number): number[] {
+  const a = Array.from({ length: n }, (_, i) => i);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 const START: State = {
   phase: "attract",
   index: 0,
@@ -72,6 +107,7 @@ const START: State = {
   onMessage: 0,
   reaction: null,
   failReason: null,
+  order: [0, 1, 2],
 };
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
 
@@ -86,6 +122,9 @@ export function HotTakeArcade() {
       img.src = F(n);
     });
   }, []);
+
+  const begin = () =>
+    setS({ ...START, phase: "asking", order: shuffled(INTERVIEW_QUESTIONS[0].options.length) });
 
   const choose = (opt: InterviewOption) => {
     const d = DELTAS[opt.type];
@@ -106,9 +145,20 @@ export function HotTakeArcade() {
       if (p.momentum <= 0)
         return { ...p, phase: "gameover", failReason: "Momentum flatlined — the room stopped listening." };
       if (p.index + 1 >= INTERVIEW_QUESTIONS.length) return { ...p, phase: "won" };
-      return { ...p, phase: "asking", index: p.index + 1, reaction: null };
+      return {
+        ...p,
+        phase: "asking",
+        index: p.index + 1,
+        reaction: null,
+        order: shuffled(INTERVIEW_QUESTIONS[p.index + 1].options.length),
+      };
     });
   };
+
+  const options = useMemo(
+    () => s.order.map((i) => q.options[i]).filter(Boolean),
+    [s.order, q],
+  );
 
   // Pick the Mayor's current animation from the game state.
   const clip: ClipName =
@@ -137,8 +187,18 @@ export function HotTakeArcade() {
         className="absolute inset-0 h-full w-full object-cover"
       />
 
-      {/* The Mayor at the desk */}
+      {/* The Mayor, seated behind the desk */}
       <MayorSprite clip={clip} />
+
+      {/* Foreground desk: a clipped copy of the set so his torso sits behind it */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/games/hot-take-bg.webp"
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        style={{ clipPath: "inset(64% 0 0 0)" }}
+      />
 
       {/* Faint scanline/CRT vibe */}
       <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,rgba(0,0,0,0.18)_0px,rgba(0,0,0,0.18)_1px,transparent_2px,transparent_3px)] opacity-40" />
@@ -159,7 +219,7 @@ export function HotTakeArcade() {
 
       {/* Bottom broadcast overlay: question + options / reaction / results */}
       <div className="absolute inset-x-0 bottom-0 flex max-h-[62%] flex-col justify-end gap-2 bg-gradient-to-t from-black via-black/85 to-transparent px-3 pb-3 pt-10">
-        {s.phase === "attract" && <Attract onStart={() => setS({ ...START, phase: "asking" })} />}
+        {s.phase === "attract" && <Attract onStart={begin} />}
 
         {(s.phase === "asking" || s.phase === "reacting") && (
           <>
@@ -173,7 +233,7 @@ export function HotTakeArcade() {
 
             {s.phase === "asking" ? (
               <div className="space-y-1.5 overflow-y-auto">
-                {q.options.map((opt, i) => (
+                {options.map((opt, i) => (
                   <button
                     key={i}
                     onClick={() => choose(opt)}
@@ -190,46 +250,48 @@ export function HotTakeArcade() {
         )}
 
         {(s.phase === "won" || s.phase === "gameover") && (
-          <Results state={s} onAgain={() => setS({ ...START, phase: "asking" })} />
+          <Results state={s} onAgain={begin} />
         )}
       </div>
     </div>
   );
 }
 
-/* ---- The animated Mayor --------------------------------------------- */
+/* ---- The animated Mayor ---------------------------------------------- *
+ * On each state change: play the clip's burst once (step ms per frame) and
+ * hold the final pose. After settling, shift to a random idle pose every
+ * 3.5–6.5s — a blink of life, not a loop. */
 function MayorSprite({ clip }: { clip: ClipName }) {
-  const { frames, fps } = CLIPS[clip];
-  const [i, setI] = useState(0);
-  const raf = useRef(0);
-  const acc = useRef(0);
-  const last = useRef(0);
+  const [frame, setFrame] = useState(CLIPS[clip].play[0]);
 
   useEffect(() => {
-    setI(0);
-    acc.current = 0;
-    last.current = 0;
-    if (frames.length <= 1) return;
-    const step = (t: number) => {
-      if (!last.current) last.current = t;
-      acc.current += t - last.current;
-      last.current = t;
-      const dur = 1000 / fps;
-      if (acc.current >= dur) {
-        acc.current = 0;
-        setI((p) => (p + 1) % frames.length);
-      }
-      raf.current = requestAnimationFrame(step);
+    const { play, step, idle } = CLIPS[clip];
+    let alive = true;
+    const timers: number[] = [];
+    play.forEach((f, i) => {
+      timers.push(window.setTimeout(() => alive && setFrame(f), i * step));
+    });
+    const scheduleIdle = (delay: number) => {
+      timers.push(
+        window.setTimeout(() => {
+          if (!alive) return;
+          setFrame(idle[Math.floor(Math.random() * idle.length)]);
+          scheduleIdle(3500 + Math.random() * 3000);
+        }, delay),
+      );
     };
-    raf.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf.current);
-  }, [clip, frames, fps]);
+    scheduleIdle(play.length * step + 3500 + Math.random() * 3000);
+    return () => {
+      alive = false;
+      timers.forEach(clearTimeout);
+    };
+  }, [clip]);
 
   return (
-    <div className="absolute left-1/2 top-[6%] w-[82%] -translate-x-1/2">
+    <div className="absolute left-1/2 top-[27%] w-[64%] -translate-x-1/2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={F(frames[i])}
+        src={F(frame)}
         alt="Mayor Mamdani at the news desk"
         draggable={false}
         className="pointer-events-none h-auto w-full drop-shadow-[0_6px_0_rgba(0,0,0,0.35)]"

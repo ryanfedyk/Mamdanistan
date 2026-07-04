@@ -84,13 +84,14 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
   {
     id: "fix-the-city",
     title: "Fix the City",
-    blurb: "Cross the traffic. Patch every hazard. Beat the gridlock.",
+    blurb: "Jog the avenue. Patch the potholes. Outrun the jam.",
     howToPlay:
-      "Frogger-style. Hop across lanes of moving traffic with the D-pad (or " +
-      "arrows / WASD) to reach potholes, cones, debris, hydrants, and dead " +
-      "signals — stop on each to fix it. New jobs keep popping up; clear the " +
-      "whole quota before the clock runs out. Get clipped by a car and you're " +
-      "knocked back to the depot, minus precious seconds.",
+      "You're the Mayor on pothole patrol, jogging down a multi-lane avenue. " +
+      "Slide up and down into a hazard's lane and pause a beat to patch it " +
+      "before the car racing up behind piles in — beat the car and the lane " +
+      "flows; lose and GRIDLOCK climbs. Cones grab instantly, and holding " +
+      "DASH buys space (but skips potholes). Clear the shift's quota before " +
+      "gridlock maxes out, then take on the faster Shift 2.",
     accent: "mamdani-ember",
     glyph: "🚧",
     hero: "/games/fix-the-city-hero.webp",

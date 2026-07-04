@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   INTERVIEW_QUESTIONS,
@@ -167,9 +167,29 @@ const START: State = {
 };
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
 
+/** The set's aspect ratio (the uploaded background). */
+const STAGE_AR = 789 / 1402;
+
 export function HotTakeArcade() {
   const [s, setS] = useState<State>(START);
   const q = INTERVIEW_QUESTIONS[s.index];
+
+  // Size the stage to COVER the box while keeping the set's aspect ratio, so
+  // % anchors (sprite, mic, desk line) always match the background art.
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [stage, setStage] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w / h >= STAGE_AR) setStage({ w, h: w / STAGE_AR });
+      else setStage({ w: h * STAGE_AR, h });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Preload every frame once so poses don't pop in mid-answer.
   useEffect(() => {
@@ -177,6 +197,24 @@ export function HotTakeArcade() {
       const img = new Image();
       img.src = F(n);
     });
+  }, []);
+
+  // On mobile the game is a fixed full-window layer — lock the document scroll
+  // behind it so the page behaves like a fixed-size app screen.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const apply = () => {
+      const v = mq.matches ? "hidden" : "";
+      document.documentElement.style.overflow = v;
+      document.body.style.overflow = v;
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => {
+      mq.removeEventListener("change", apply);
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+    };
   }, []);
 
   const begin = () =>
@@ -229,32 +267,50 @@ export function HotTakeArcade() {
             : "gameover";
 
   return (
+    // Mobile (<lg): a fixed, non-scrollable full-window layer, like Fix the
+    // City. Desktop (lg+): a centered tall card. The set visuals live on an
+    // aspect-locked STAGE that covers the box (measured below), so the
+    // sprite/mic/desk anchors always line up with the background art no matter
+    // the phone's aspect; the HUD and question UI pin to the real box edges.
     <div
+      ref={boxRef}
       onContextMenu={(e) => e.preventDefault()}
-      className="relative mx-auto aspect-[704/1261] w-full max-w-[440px] select-none overflow-hidden rounded-lg border-2 border-black bg-mamdani-ink shadow-brutal [-webkit-touch-callout:none]"
-      style={{ maxHeight: "calc(100dvh - 84px)" }}
+      className="fixed inset-x-0 bottom-0 top-[60px] z-40 select-none overflow-hidden bg-mamdani-ink [-webkit-touch-callout:none] lg:relative lg:inset-auto lg:top-auto lg:z-auto lg:mx-auto lg:aspect-[789/1402] lg:w-full lg:max-w-[400px] lg:rounded-lg lg:border-2 lg:border-black lg:shadow-brutal"
     >
-      {/* Studio background */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/games/hot-take-bg.webp"
-        alt=""
-        aria-hidden
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      {/* Stage: background + Mayor + foreground desk/mic, in set coordinates */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ width: stage.w, height: stage.h }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/games/hot-take-bg.webp"
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full"
+        />
 
-      {/* The Mayor, seated behind the desk */}
-      <MayorSprite script={script} />
+        {/* The Mayor, seated on the chair, face at the mic's aim line */}
+        <MayorSprite script={script} />
 
-      {/* Foreground desk: a clipped copy of the set so his torso sits behind it */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/games/hot-take-bg.webp"
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-        style={{ clipPath: "inset(71.5% 0 0 0)" }}
-      />
+        {/* Foreground desk (clipped copy of the set) hides his lower torso… */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/games/hot-take-bg.webp"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          style={{ clipPath: "inset(46% 0 0 0)" }}
+        />
+        {/* …and the desk mic sits in front of him */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/sprites/hot-take/mic_fg.webp"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute left-[34%] top-[35%] w-[16%]"
+        />
+      </div>
 
       {/* Faint scanline/CRT vibe */}
       <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,rgba(0,0,0,0.18)_0px,rgba(0,0,0,0.18)_1px,transparent_2px,transparent_3px)] opacity-40" />
@@ -274,7 +330,7 @@ export function HotTakeArcade() {
       </div>
 
       {/* Bottom broadcast overlay: question + options / reaction / results */}
-      <div className="absolute inset-x-0 bottom-0 flex max-h-[62%] flex-col justify-end gap-2 bg-gradient-to-t from-black via-black/85 to-transparent px-3 pb-3 pt-10">
+      <div className="absolute inset-x-0 bottom-0 flex max-h-[62%] flex-col justify-end gap-2 bg-gradient-to-t from-black via-black/85 to-transparent px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-10">
         {s.phase === "attract" && <Attract onStart={begin} />}
 
         {(s.phase === "asking" || s.phase === "reacting") && (
@@ -318,9 +374,9 @@ export function HotTakeArcade() {
  * hold the final pose. While holding, an occasional blink swaps briefly and
  * ALWAYS returns to the hold pose — alive, but composed.
  *
- * Placement is anchored to the set: seated on the chair (center-x 58%), face
+ * Placement is anchored to the set: seated on the chair (center-x 62%), face
  * at the microphone's aim line, torso disappearing behind the desk edge (the
- * clipped set copy the parent draws at 71.5%). */
+ * clipped set copy the parent draws at 46%). */
 function MayorSprite({ script }: { script: ScriptKey }) {
   const [frame, setFrame] = useState(SCRIPTS[script].seq[0].f);
 
@@ -360,7 +416,7 @@ function MayorSprite({ script }: { script: ScriptKey }) {
   }, [script]);
 
   return (
-    <div className="absolute left-[58%] top-[38%] w-[74%] -translate-x-1/2">
+    <div className="absolute left-[62%] top-[17.8%] w-[80%] -translate-x-1/2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={F(frame)}

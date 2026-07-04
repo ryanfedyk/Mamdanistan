@@ -390,7 +390,7 @@ export function HotTakeArcade() {
               <p className="font-pixel text-[8px] uppercase text-mamdani-cyan">
                 Q{s.index + 1}/{INTERVIEW_QUESTIONS.length} · {q.topic} · The Press
               </p>
-              <p className="mt-1 font-terminal text-lg leading-tight text-white">🎙 {q.prompt}</p>
+              <p className="mt-1 font-sans text-[15px] font-semibold leading-snug text-white">🎙 {q.prompt}</p>
             </div>
 
             {s.phase === "asking" ? (
@@ -399,7 +399,7 @@ export function HotTakeArcade() {
                   <button
                     key={i}
                     onClick={() => choose(opt)}
-                    className="block w-full rounded-sm border-2 border-mamdani-steel bg-mamdani-slate/80 px-3 py-2 text-left font-terminal text-base leading-snug text-mamdani-fog transition-colors hover:border-mamdani-cyan hover:text-white active:translate-y-[1px]"
+                    className="block w-full rounded-sm border-2 border-mamdani-steel bg-mamdani-ink/95 px-3 py-2.5 text-left font-sans text-[14px] font-medium leading-snug text-white/95 transition-colors hover:border-mamdani-cyan hover:text-white active:translate-y-[1px]"
                   >
                     {opt.text}
                   </button>
@@ -486,7 +486,7 @@ function Attract({ onStart }: { onStart: () => void }) {
   return (
     <div className="space-y-2 rounded-sm border-2 border-mamdani-steel bg-black/75 px-4 py-4">
       <h2 className="pixel-heading text-base text-mamdani-cyan">Hot Take</h2>
-      <p className="font-terminal text-base leading-snug text-mamdani-fog">
+      <p className="font-sans text-[14px] leading-relaxed text-white/90">
         Eight questions. A hostile press corps wants you to be the headline. Stay on message — pivot
         every trap back to pools, rent, and buses. Take the bait and the{" "}
         <span className="text-mamdani-red">Noise</span> buries you.
@@ -521,7 +521,7 @@ function Reaction({
     <div className="space-y-2">
       <div className={`rounded-sm border-2 bg-black/75 px-3 py-2 ${t.cls}`}>
         <p className="font-pixel text-[8px] uppercase">{t.label}</p>
-        <p className="mt-1 font-terminal text-base leading-snug">{reaction.reaction}</p>
+        <p className="mt-1 font-sans text-[14px] font-medium leading-snug">{reaction.reaction}</p>
       </div>
       <button
         onClick={onNext}
@@ -540,7 +540,7 @@ function Results({ state, onAgain }: { state: State; onAgain: () => void }) {
       <h2 className={`pixel-heading text-base ${won ? "text-mamdani-mint" : "text-mamdani-red"}`}>
         {won ? "Stayed On Message" : "You Became The Story"}
       </h2>
-      <p className="font-terminal text-base leading-snug text-mamdani-fog">
+      <p className="font-sans text-[14px] leading-relaxed text-white/90">
         {won
           ? "You walked the gauntlet and the pools are still the story. The discourse goes hungry."
           : state.failReason}

@@ -169,29 +169,57 @@ const clamp = (n: number) => Math.max(0, Math.min(100, n));
 
 /** The set's aspect ratio (the uploaded background). */
 const STAGE_AR = 789 / 1402;
+/** Where the Mayor's sprite starts, as a fraction of stage height. */
+const MAYOR_TOP = 0.094;
+/** Keep the Mayor's sprite top at/below this box offset (under the HUD). */
+const SAFE_TOP = 72;
+/** Pull-to-refresh: distance (px) the finger must travel. */
+const PTR_THRESHOLD = 110;
 
 export function HotTakeArcade() {
   const [s, setS] = useState<State>(START);
   const q = INTERVIEW_QUESTIONS[s.index];
 
-  // The stage is width-fit and BOTTOM-anchored: the set is pushed down as far
-  // as it goes, so the desk always sits at the bottom of the screen with the
-  // question UI on the desk front. Tall phones get a dark strip at the very
-  // top (behind the HUD); short boxes crop the top of the set, never the desk.
-  // Keeping the set's aspect means % anchors (sprite, mic, desk line) always
-  // match the background art.
+  // The stage is width-fit and pushed as far DOWN as the composition allows:
+  // bottom-anchored (desk at the bottom, dark strip up top on tall phones),
+  // but never so far up that the Mayor's head slides under the HUD — on short
+  // boxes the set slides down instead (the bottom of the desk front crops
+  // behind the question panel), so his seated torso always shows above the
+  // desk. Keeping the set's aspect means % anchors (sprite, mic, desk line)
+  // always match the background art.
   const boxRef = useRef<HTMLDivElement>(null);
-  const [stage, setStage] = useState({ w: 0, h: 0 });
+  const [stage, setStage] = useState({ w: 0, h: 0, top: 0 });
   useEffect(() => {
     const el = boxRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
       const w = el.clientWidth;
-      setStage({ w, h: w / STAGE_AR });
+      const h = el.clientHeight;
+      const sh = w / STAGE_AR;
+      const top = Math.max(h - sh, SAFE_TOP - MAYOR_TOP * sh);
+      setStage({ w, h: sh, top });
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // Custom pull-to-refresh: the scroll lock disables the browser's native
+  // gesture, so a long downward pull on the set reloads the page ourselves.
+  const [pull, setPull] = useState(0);
+  const pullY0 = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    pullY0.current = e.touches[0].clientY;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (pullY0.current === null) return;
+    const dy = e.touches[0].clientY - pullY0.current;
+    setPull(dy > 12 ? dy : 0);
+  };
+  const onTouchEnd = () => {
+    if (pull >= PTR_THRESHOLD) window.location.reload();
+    pullY0.current = null;
+    setPull(0);
+  };
 
   // Preload every frame once so poses don't pop in mid-answer.
   useEffect(() => {
@@ -277,12 +305,16 @@ export function HotTakeArcade() {
     <div
       ref={boxRef}
       onContextMenu={(e) => e.preventDefault()}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
       className="fixed inset-x-0 bottom-0 top-[60px] z-40 select-none overflow-hidden bg-mamdani-ink [-webkit-touch-callout:none] lg:relative lg:inset-auto lg:top-auto lg:z-auto lg:mx-auto lg:aspect-[789/1402] lg:w-full lg:max-w-[400px] lg:rounded-lg lg:border-2 lg:border-black lg:shadow-brutal"
     >
       {/* Stage: background + Mayor + foreground desk/mic, in set coordinates */}
       <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2"
-        style={{ width: stage.w, height: stage.h }}
+        className="absolute left-1/2 -translate-x-1/2"
+        style={{ width: stage.w, height: stage.h, top: stage.top }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -316,6 +348,19 @@ export function HotTakeArcade() {
 
       {/* Faint scanline/CRT vibe */}
       <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,rgba(0,0,0,0.18)_0px,rgba(0,0,0,0.18)_1px,transparent_2px,transparent_3px)] opacity-40" />
+
+      {/* Pull-to-refresh indicator (custom — the scroll lock disables native) */}
+      {pull > 30 && (
+        <div className="pointer-events-none absolute inset-x-0 top-14 z-10 flex justify-center">
+          <span
+            className={`rounded-full border-2 border-black px-3 py-1 font-pixel text-[9px] uppercase shadow-pixel ${
+              pull >= PTR_THRESHOLD ? "bg-mamdani-mint text-mamdani-ink" : "bg-mamdani-slate text-mamdani-fog"
+            }`}
+          >
+            {pull >= PTR_THRESHOLD ? "↻ Release to refresh" : "↓ Pull to refresh"}
+          </span>
+        </div>
+      )}
 
       {/* Top HUD: meters + live badge */}
       <div className="absolute inset-x-0 top-0 space-y-1.5 bg-gradient-to-b from-black/70 to-transparent px-3 pb-4 pt-2">
@@ -418,7 +463,10 @@ function MayorSprite({ script }: { script: ScriptKey }) {
   }, [script]);
 
   return (
-    <div className="absolute left-[62%] top-[9.4%] w-[72%] -translate-x-1/2">
+    <div
+      className="absolute left-[62%] w-[72%] -translate-x-1/2"
+      style={{ top: `${MAYOR_TOP * 100}%` }}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={F(frame)}

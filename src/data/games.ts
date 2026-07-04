@@ -79,6 +79,8 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
       "you become the headline.",
     accent: "mamdani-cyan",
     glyph: "🎙️",
+    hero: "/games/hot-take-hero.webp",
+    heroThumb: "/games/hot-take-icon.webp",
     status: "playable",
   },
   {

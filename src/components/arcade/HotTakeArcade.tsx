@@ -174,8 +174,12 @@ export function HotTakeArcade() {
   const [s, setS] = useState<State>(START);
   const q = INTERVIEW_QUESTIONS[s.index];
 
-  // Size the stage to COVER the box while keeping the set's aspect ratio, so
-  // % anchors (sprite, mic, desk line) always match the background art.
+  // The stage is width-fit and BOTTOM-anchored: the set is pushed down as far
+  // as it goes, so the desk always sits at the bottom of the screen with the
+  // question UI on the desk front. Tall phones get a dark strip at the very
+  // top (behind the HUD); short boxes crop the top of the set, never the desk.
+  // Keeping the set's aspect means % anchors (sprite, mic, desk line) always
+  // match the background art.
   const boxRef = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState({ w: 0, h: 0 });
   useEffect(() => {
@@ -183,9 +187,7 @@ export function HotTakeArcade() {
     if (!el) return;
     const ro = new ResizeObserver(() => {
       const w = el.clientWidth;
-      const h = el.clientHeight;
-      if (w / h >= STAGE_AR) setStage({ w, h: w / STAGE_AR });
-      else setStage({ w: h * STAGE_AR, h });
+      setStage({ w, h: w / STAGE_AR });
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -279,7 +281,7 @@ export function HotTakeArcade() {
     >
       {/* Stage: background + Mayor + foreground desk/mic, in set coordinates */}
       <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2"
         style={{ width: stage.w, height: stage.h }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -416,7 +418,7 @@ function MayorSprite({ script }: { script: ScriptKey }) {
   }, [script]);
 
   return (
-    <div className="absolute left-[62%] top-[17.8%] w-[80%] -translate-x-1/2">
+    <div className="absolute left-[62%] top-[9.4%] w-[72%] -translate-x-1/2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={F(frame)}

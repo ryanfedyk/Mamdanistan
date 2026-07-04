@@ -22,59 +22,115 @@ import {
  * pick isn't always the first button.
  */
 
-/* ---- Mayor animation clips ------------------------------------------- */
+/* ---- Mayor pose scripts ----------------------------------------------- *
+ * Every game beat has ONE deliberate script: a short entry sequence that ends
+ * on a hold pose. While holding, the only motion is an occasional BLINK — a
+ * brief swap that always returns to the hold pose — so he reads as alive but
+ * composed, never wandering between poses.
+ *
+ * Frame vocabulary (sliced from the sheet):
+ *   neutral        plain front — the resting anchor face
+ *   listen_0..3    attentive close-ups: front / tilt / eyes-closed / glance
+ *   smiling_0..3   warm close-ups: soft / big grin / bright / wry
+ *   speak_0..5     talking mouth-cycle
+ *   think_0..2     "well…" point / hand-on-chin / chin-stroke
+ *   speakgest_0..3 explaining palms / point / open gesture / thumbs-up
+ *   commgest_0..3  angry point-down / lecture finger / palm-out / shrug
+ */
 const F = (n: string) => `/sprites/hot-take/${n}.webp`;
-type ClipName =
-  | "listen"
-  | "think"
-  | "speakgest"
-  | "smiling"
-  | "commgest";
 
-/** play: burst shown once on entering the state (ends on the hold pose).
- *  step: ms per burst frame. idle: pool for the occasional resting shift. */
-const CLIPS: Record<ClipName, { play: string[]; step: number; idle: string[] }> = {
-  // The press is asking — glance around, settle front and hold.
-  listen: {
-    play: ["listen_1", "listen_3", "listen_0"],
-    step: 520,
-    idle: ["listen_0", "listen_1", "listen_2", "listen_3"],
+interface Step {
+  f: string;
+  ms: number; // time before advancing; the last step is the hold (ms ignored)
+}
+interface Blink {
+  f: string; // brief swap frame
+  ms: number; // how long the blink shows
+  min: number; // min/max gap between blinks
+  max: number;
+}
+interface PoseScript {
+  seq: Step[];
+  blink?: Blink;
+}
+
+type ScriptKey =
+  | "attract"
+  | "asking"
+  | "react_message"
+  | "react_dodge"
+  | "react_trap"
+  | "won"
+  | "gameover";
+
+const SCRIPTS: Record<ScriptKey, PoseScript> = {
+  // Waiting for air: composed, occasional blink.
+  attract: {
+    seq: [{ f: "neutral", ms: 0 }],
+    blink: { f: "listen_2", ms: 260, min: 3800, max: 6800 },
   },
-  // Non-committal dodge — hand comes up to the chin and stays there.
-  think: {
-    play: ["think_0", "think_2", "think_1"],
-    step: 480,
-    idle: ["think_1", "think_2"],
+  // The press is asking: a small attentive turn, then settle front and listen.
+  asking: {
+    seq: [
+      { f: "listen_1", ms: 520 },
+      { f: "listen_0", ms: 0 },
+    ],
+    blink: { f: "listen_2", ms: 260, min: 3200, max: 6200 },
   },
-  // On-message answer — confident talking gestures, ends on the thumbs-up.
-  speakgest: {
-    play: ["speakgest_0", "speakgest_1", "speakgest_2", "speakgest_3"],
-    step: 420,
-    idle: ["speakgest_3", "speak_5"],
+  // He answers — talks first (mouth cycle), then lands the tone.
+  react_message: {
+    seq: [
+      { f: "speak_1", ms: 240 },
+      { f: "speak_2", ms: 240 },
+      { f: "speak_4", ms: 240 },
+      { f: "speak_5", ms: 280 },
+      { f: "speakgest_2", ms: 460 }, // open, confident gesture…
+      { f: "speakgest_3", ms: 0 }, // …lands on the thumbs-up
+    ],
   },
-  // Intro / victory — warm and settled.
-  smiling: {
-    play: ["smiling_2", "smiling_1"],
-    step: 520,
-    idle: ["smiling_0", "smiling_1", "smiling_2", "smiling_3"],
+  react_dodge: {
+    seq: [
+      { f: "speak_3", ms: 260 },
+      { f: "speak_0", ms: 260 },
+      { f: "speak_3", ms: 300 }, // the answer trails off…
+      { f: "think_2", ms: 480 },
+      { f: "think_1", ms: 0 }, // …hand settles on the chin
+    ],
   },
-  // Took the bait / gameover — blows up, ends pointing at the desk.
-  commgest: {
-    play: ["commgest_2", "commgest_3", "commgest_1", "commgest_0"],
-    step: 420,
-    idle: ["commgest_0", "commgest_1"],
+  react_trap: {
+    seq: [
+      { f: "speak_1", ms: 200 },
+      { f: "speak_2", ms: 200 },
+      { f: "speak_1", ms: 200 }, // talking faster…
+      { f: "commgest_3", ms: 440 }, // …shrug —
+      { f: "commgest_0", ms: 0 }, // — and the angry point. He's the story.
+    ],
+  },
+  // Walked the gauntlet: the smile builds, then holds with a soft blink.
+  won: {
+    seq: [
+      { f: "smiling_2", ms: 500 },
+      { f: "smiling_1", ms: 0 },
+    ],
+    blink: { f: "smiling_0", ms: 300, min: 4000, max: 7000 },
+  },
+  // Became the story: palm-out, then fuming — dead still.
+  gameover: {
+    seq: [
+      { f: "commgest_2", ms: 500 },
+      { f: "commgest_0", ms: 0 },
+    ],
   },
 };
+
 const ALL_FRAMES = Array.from(
-  new Set(Object.values(CLIPS).flatMap((c) => [...c.play, ...c.idle])),
+  new Set(
+    Object.values(SCRIPTS).flatMap((s) => [
+      ...s.seq.map((x) => x.f),
+      ...(s.blink ? [s.blink.f] : []),
+    ]),
+  ),
 );
-
-/** Which pose the Mayor strikes for a given answer type. */
-const REACTION_CLIP: Record<AnswerType, ClipName> = {
-  message: "speakgest", // confident, on-message gesture
-  dodge: "think", // non-committal, mulling it over
-  trap: "commgest", // blew up — became the story
-};
 
 /* ---- Game state ------------------------------------------------------ */
 type Phase = "attract" | "asking" | "reacting" | "won" | "gameover";
@@ -160,17 +216,17 @@ export function HotTakeArcade() {
     [s.order, q],
   );
 
-  // Pick the Mayor's current animation from the game state.
-  const clip: ClipName =
+  // Pick the Mayor's pose script from the game beat.
+  const script: ScriptKey =
     s.phase === "attract"
-      ? "smiling"
+      ? "attract"
       : s.phase === "asking"
-        ? "listen"
+        ? "asking"
         : s.phase === "reacting"
-          ? REACTION_CLIP[s.reaction?.type ?? "dodge"]
+          ? (`react_${s.reaction?.type ?? "dodge"}` as ScriptKey)
           : s.phase === "won"
-            ? "smiling"
-            : "commgest";
+            ? "won"
+            : "gameover";
 
   return (
     <div
@@ -188,7 +244,7 @@ export function HotTakeArcade() {
       />
 
       {/* The Mayor, seated behind the desk */}
-      <MayorSprite clip={clip} />
+      <MayorSprite script={script} />
 
       {/* Foreground desk: a clipped copy of the set so his torso sits behind it */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -197,7 +253,7 @@ export function HotTakeArcade() {
         alt=""
         aria-hidden
         className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-        style={{ clipPath: "inset(64% 0 0 0)" }}
+        style={{ clipPath: "inset(71.5% 0 0 0)" }}
       />
 
       {/* Faint scanline/CRT vibe */}
@@ -258,43 +314,59 @@ export function HotTakeArcade() {
 }
 
 /* ---- The animated Mayor ---------------------------------------------- *
- * On each state change: play the clip's burst once (step ms per frame) and
- * hold the final pose. After settling, shift to a random idle pose every
- * 3.5–6.5s — a blink of life, not a loop. */
-function MayorSprite({ clip }: { clip: ClipName }) {
-  const [frame, setFrame] = useState(CLIPS[clip].play[0]);
+ * Runs the beat's pose script: step through the entry sequence once, then
+ * hold the final pose. While holding, an occasional blink swaps briefly and
+ * ALWAYS returns to the hold pose — alive, but composed.
+ *
+ * Placement is anchored to the set: seated on the chair (center-x 58%), face
+ * at the microphone's aim line, torso disappearing behind the desk edge (the
+ * clipped set copy the parent draws at 71.5%). */
+function MayorSprite({ script }: { script: ScriptKey }) {
+  const [frame, setFrame] = useState(SCRIPTS[script].seq[0].f);
 
   useEffect(() => {
-    const { play, step, idle } = CLIPS[clip];
+    const { seq, blink } = SCRIPTS[script];
     let alive = true;
     const timers: number[] = [];
-    play.forEach((f, i) => {
-      timers.push(window.setTimeout(() => alive && setFrame(f), i * step));
+    let t = 0;
+    seq.forEach((step) => {
+      timers.push(window.setTimeout(() => alive && setFrame(step.f), t));
+      t += step.ms;
     });
-    const scheduleIdle = (delay: number) => {
-      timers.push(
-        window.setTimeout(() => {
-          if (!alive) return;
-          setFrame(idle[Math.floor(Math.random() * idle.length)]);
-          scheduleIdle(3500 + Math.random() * 3000);
-        }, delay),
-      );
-    };
-    scheduleIdle(play.length * step + 3500 + Math.random() * 3000);
+    if (blink) {
+      const hold = seq[seq.length - 1].f;
+      const gap = () => blink.min + Math.random() * (blink.max - blink.min);
+      const schedule = (delay: number) => {
+        timers.push(
+          window.setTimeout(() => {
+            if (!alive) return;
+            setFrame(blink.f);
+            timers.push(
+              window.setTimeout(() => {
+                if (!alive) return;
+                setFrame(hold);
+                schedule(gap());
+              }, blink.ms),
+            );
+          }, delay),
+        );
+      };
+      schedule(t + gap());
+    }
     return () => {
       alive = false;
       timers.forEach(clearTimeout);
     };
-  }, [clip]);
+  }, [script]);
 
   return (
-    <div className="absolute left-1/2 top-[27%] w-[64%] -translate-x-1/2">
+    <div className="absolute left-[58%] top-[38%] w-[74%] -translate-x-1/2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={F(frame)}
         alt="Mayor Mamdani at the news desk"
         draggable={false}
-        className="pointer-events-none h-auto w-full drop-shadow-[0_6px_0_rgba(0,0,0,0.35)]"
+        className="pointer-events-none h-auto w-full"
       />
     </div>
   );

@@ -632,13 +632,15 @@ function drawBackground(ctx: CanvasRenderingContext2D, cam: number) {
     ctx.fillStyle = "#39342b";
     ctx.fillRect(0, ROAD_TOP, WIDTH, ROAD_BOT - ROAD_TOP);
   }
-  // Scrolling dashed lane dividers convey motion.
+  // Scrolling dashed lane dividers convey motion. A positive dash offset
+  // shifts the pattern toward the line start, so dashes travel LEFT as the
+  // camera advances — matching the world (they're road markings, not cars).
   ctx.strokeStyle = "rgba(255,214,90,0.75)";
   ctx.lineWidth = 3;
   for (let l = 1; l < LANES; l++) {
     const y = ROAD_TOP + LANE_H * l;
     ctx.setLineDash([20, 16]);
-    ctx.lineDashOffset = -(cam % 36);
+    ctx.lineDashOffset = cam % 36;
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(WIDTH, y);

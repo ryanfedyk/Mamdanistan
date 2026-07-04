@@ -37,7 +37,10 @@ import {
  *   speakgest_0..3 explaining palms / point / open gesture / thumbs-up
  *   commgest_0..3  angry point-down / lecture finger / palm-out / shrug
  */
-const F = (n: string) => `/sprites/hot-take/${n}.webp`;
+/** Cache-buster for the set's art. Bump when any sprite/bg file is re-cut so
+ *  clients don't keep serving stale cached copies under the same filenames. */
+const ASSET_V = 2;
+const F = (n: string) => `/sprites/hot-take/${n}.webp?v=${ASSET_V}`;
 
 interface Step {
   f: string;
@@ -318,7 +321,7 @@ export function HotTakeArcade() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/games/hot-take-bg.webp"
+          src={`/games/hot-take-bg.webp?v=${ASSET_V}`}
           alt=""
           aria-hidden
           className="absolute inset-0 h-full w-full"
@@ -330,7 +333,7 @@ export function HotTakeArcade() {
         {/* Foreground desk (clipped copy of the set) hides his lower torso… */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/games/hot-take-bg.webp"
+          src={`/games/hot-take-bg.webp?v=${ASSET_V}`}
           alt=""
           aria-hidden
           className="pointer-events-none absolute inset-0 h-full w-full"
@@ -339,7 +342,7 @@ export function HotTakeArcade() {
         {/* …and the desk mic sits in front of him */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/sprites/hot-take/mic_fg.webp"
+          src={`/sprites/hot-take/mic_fg.webp?v=${ASSET_V}`}
           alt=""
           aria-hidden
           className="pointer-events-none absolute left-[34%] top-[35%] w-[16%]"

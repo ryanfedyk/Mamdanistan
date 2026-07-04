@@ -70,7 +70,7 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
   },
   {
     id: "hot-mic",
-    title: "Hot Mic",
+    title: "Hot Take",
     blurb: "Survive the press. Stay on message.",
     howToPlay:
       "A hostile interview gauntlet. Each question is a trap — pick the answer " +

@@ -58,7 +58,7 @@ const PHASES: Array<[number, number, string]> = [
   [0.45, 1.9, "HEAVY BANDS"],
   [0.75, 1.0, "TAPERING OFF"],
 ];
-const BASE_RATE = 0.045; // depth/sec at multiplier 1
+const BASE_RATE = 0.052; // depth/sec at multiplier 1 (hand-shovels help now)
 
 function phaseAt(t: number): [number, string] {
   const f = t / STORM_LENGTH;
@@ -85,6 +85,15 @@ export interface Plow {
 
 export type DirectorPose = "idle" | "order" | "good" | "bad" | "win" | "lose";
 
+/** Floating feedback text ("SCRAPE!", "HONK HONK", …) in canvas coords. */
+export interface Popup {
+  x: number;
+  y: number;
+  text: string;
+  ttl: number;
+  color: string;
+}
+
 export interface SnowCommandState extends BaseGameState {
   t: number; // seconds into the storm
   snow: number[]; // per-cell depth (only road cells used)
@@ -96,24 +105,44 @@ export interface SnowCommandState extends BaseGameState {
   phaseLabel: string;
   gust: { c: number; r: number; ttl: number } | null; // localized squall
   director: { pose: DirectorPose; line: string; ttl: number };
+  popups: Popup[];
+  /** Shovel-mash streak: rapid taps chain; milestones earn praise. */
+  streak: number;
+  lastTapT: number;
+  /** A cab stuck in a drift — mash it to free the cabbie. */
+  taxi: { c: number; r: number; taps: number; ttl: number } | null;
+  taxiTimer: number;
+  /** The bodega cat, on patrol. Purely load-bearing for morale. */
+  cat: { x: number; row: number; dir: number; thanked: boolean } | null;
+  catTimer: number;
 }
 
 const LINES_ORDER = [
-  "Plow %N — that street. Go!",
-  "Route %N through there. Move!",
-  "%N, the people need that block!",
-  "Send %N — buses can't wait!",
+  "Plow %N — that block. The halal cart can't move!",
+  "%N, roll out. Curtis is tweeting again.",
+  "Send %N! A bodega cat is judging us.",
+  "%N, go go go — buses don't believe in snow days.",
+  "Plow %N! Grandma has a hair appointment.",
+  "%N, that street owes me a clear commute.",
 ];
 const LINES_GOOD = [
-  "That's how we plow. Beautiful.",
-  "The city is MOVING, folks.",
-  "Buses gliding. Keep it up.",
+  "City's moving. Somewhere, a pundit weeps.",
+  "Cleared! The group chat is THRIVING.",
+  "Smooth as a fresh bagel schmear.",
+  "The MTA called just to say thanks. Unprecedented.",
 ];
 const LINES_BAD = [
-  "We're losing the grid — dig in!",
-  "Too much white out there. Plows!",
-  "That's a snowed-in block. Unacceptable.",
+  "That drift has its own zip code now.",
+  "I can hear the op-eds being typed.",
+  "A snowman on 4th just got rent-stabilized. DIG!",
+  "We are NOT calling Albany about this.",
 ];
+const LINES_IDLE = [
+  "Watch the squall. Keep routing.",
+  "Shovel with your heart. Also your hands.",
+  "Every flake is a tiny landlord. Clear 'em out.",
+];
+const SCRAPE_WORDS = ["SCRAPE!", "SHOVEL!", "DIG!", "CHOP!", "SCOOP!"];
 
 function rand(seed: number): number {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
@@ -143,8 +172,19 @@ function freshState(phase: SnowCommandState["phase"]): SnowCommandState {
     phaseLabel: "FLURRIES",
     gust: null,
     director: { pose: "idle", line: "Storm's coming in. Ready the fleet.", ttl: 5 },
+    popups: [],
+    streak: 0,
+    lastTapT: -9,
+    taxi: null,
+    taxiTimer: 10,
+    cat: null,
+    catTimer: 14,
   };
 }
+
+/** Canvas center of a tile — popups and props anchor here. */
+const tileCX = (c: number) => BOARD_X + c * TILE + TILE / 2;
+const tileCY = (r: number) => BOARD_Y + r * TILE + TILE / 2;
 
 /** BFS shortest path over road tiles. Returns waypoints excluding the start. */
 function route(
@@ -198,39 +238,120 @@ export const snowCommand: GameEngine<SnowCommandState> = {
     const [c, r] = intent.slice(4).split(",").map(Number);
     if (Number.isNaN(c) || Number.isNaN(r)) return state;
 
-    // Tap on (or next to) a plow → select that truck.
+    const popups = state.popups.slice();
+    const pop = (x: number, y: number, text: string, color = "#FFD23F") =>
+      popups.push({ x, y, text, ttl: 0.9, color });
+
+    // Mash the stuck cab free — five whacks and the cabbie rides again.
+    if (state.taxi && Math.abs(state.taxi.c - c) <= 1 && Math.abs(state.taxi.r - r) <= 1) {
+      const taps = state.taxi.taps + 1;
+      if (taps >= 5) {
+        pop(tileCX(state.taxi.c), tileCY(state.taxi.r) - 8, "CABBIE FREED! +75", "#3DDC97");
+        return {
+          ...state,
+          popups,
+          taxi: null,
+          taxiTimer: 12 + rand(state.frame) * 8,
+          score: state.score + 75,
+          director: {
+            pose: "good",
+            line: "He thanked me in four languages. What a city.",
+            ttl: 4,
+          },
+        };
+      }
+      pop(tileCX(state.taxi.c), tileCY(state.taxi.r) - 8, `PUSH! x${5 - taps}`, "#7ee0ff");
+      return { ...state, popups, taxi: { ...state.taxi, taps } };
+    }
+
+    // Tap directly on a plow (on clear-ish ground) → select that truck.
     const onPlow = state.plows.find(
       (p) => Math.abs(Math.round(p.x) - c) + Math.abs(Math.round(p.y) - r) <= 1,
     );
     if (onPlow && !isRoadTapPreferred(state, c, r, onPlow)) {
+      pop(tileCX(Math.round(onPlow.x)), tileCY(Math.round(onPlow.y)) - 14, "READY!", "#7ee0ff");
       return {
         ...state,
+        popups,
         selected: onPlow.id,
         director: { pose: "idle", line: `Plow ${onPlow.id + 1} standing by.`, ttl: 2.5 },
       };
     }
 
     if (!isRoad(c, r)) return state;
-    // Dispatch: the selected plow, else the nearest plow (idle preferred).
-    const pick =
-      state.plows.find((p) => p.id === state.selected) ??
-      [...state.plows].sort(
-        (a, b) =>
-          (a.path.length ? 1000 : 0) + Math.abs(a.x - c) + Math.abs(a.y - r) -
-          ((b.path.length ? 1000 : 0) + Math.abs(b.x - c) + Math.abs(b.y - r)),
-      )[0];
-    const start: [number, number] = [Math.round(pick.x), Math.round(pick.y)];
-    const path = route(start, [c, r]);
-    if (!path.length) return state;
-    const line = LINES_ORDER[Math.floor(rand(state.frame) * LINES_ORDER.length)].replace(
-      "%N",
-      `${pick.id + 1}`,
-    );
+
+    // ---- BUTTON MASHER: every street tap is a hand-shovel scrape ----
+    const snow = state.snow.slice();
+    const k = idx(c, r);
+    const hadSnow = snow[k] > 0.25;
+    snow[k] = Math.max(0, snow[k] - 0.7);
+    let score = state.score;
+    let streak = state.streak;
+    const chained = state.t - state.lastTapT < 0.9;
+    streak = chained ? streak + 1 : 1;
+    if (hadSnow) {
+      score += 2;
+      pop(
+        tileCX(c) + (rand(state.frame * 1.7) - 0.5) * 14,
+        tileCY(r) - 6,
+        SCRAPE_WORDS[Math.floor(rand(state.frame) * SCRAPE_WORDS.length)],
+      );
+    }
+    let director = state.director;
+    if (streak > 0 && streak % 10 === 0) {
+      pop(tileCX(c), tileCY(r) - 22, `STREAK x${streak}!`, "#3DDC97");
+      director = {
+        pose: "good",
+        line:
+          streak >= 20
+            ? "UNION-GRADE SHOVELING. Somebody hire this person."
+            : "Look at those hands go. That's civic duty.",
+        ttl: 3,
+      };
+    }
+
+    // Dispatch the fleet — but don't thrash routes while the player mashes
+    // one spot: skip if a plow is already headed (or parked) right there.
+    const covered = state.plows.some((p) => {
+      const dest = p.path.length ? p.path[p.path.length - 1] : [Math.round(p.x), Math.round(p.y)];
+      return Math.abs(dest[0] - c) + Math.abs(dest[1] - r) <= 2;
+    });
+    let plows = state.plows;
+    let selected = state.selected;
+    if (!covered) {
+      const pick =
+        state.plows.find((p) => p.id === state.selected) ??
+        [...state.plows].sort(
+          (a, b) =>
+            (a.path.length ? 1000 : 0) + Math.abs(a.x - c) + Math.abs(a.y - r) -
+            ((b.path.length ? 1000 : 0) + Math.abs(b.x - c) + Math.abs(b.y - r)),
+        )[0];
+      const path = route([Math.round(pick.x), Math.round(pick.y)], [c, r]);
+      if (path.length) {
+        plows = state.plows.map((p) => (p.id === pick.id ? { ...p, path } : p));
+        selected = null;
+        pop(tileCX(Math.round(pick.x)), tileCY(Math.round(pick.y)) - 14, "HONK HONK", "#FF6B35");
+        director = {
+          pose: "order",
+          line: LINES_ORDER[Math.floor(rand(state.frame) * LINES_ORDER.length)].replace(
+            "%N",
+            `${pick.id + 1}`,
+          ),
+          ttl: 3,
+        };
+      }
+    }
+
     return {
       ...state,
-      selected: null,
-      plows: state.plows.map((p) => (p.id === pick.id ? { ...p, path } : p)),
-      director: { pose: "order", line, ttl: 3 },
+      snow,
+      score,
+      streak,
+      lastTapT: state.t,
+      popups,
+      plows,
+      selected,
+      director,
     };
   },
 
@@ -312,6 +433,82 @@ export const snowCommand: GameEngine<SnowCommandState> = {
       return { ...p, x, y, fx, fy, path };
     });
 
+    // ---- popups drift up and fade ----
+    const popups = state.popups
+      .map((p) => ({ ...p, y: p.y - 26 * dt, ttl: p.ttl - dt }))
+      .filter((p) => p.ttl > 0);
+
+    // ---- stuck cab: spawns in a drift, waits for the mash rescue ----
+    let taxi = state.taxi;
+    let taxiTimer = state.taxiTimer - dt;
+    let score2 = score;
+    let cabbieQuit = false;
+    if (taxi) {
+      taxi = { ...taxi, ttl: taxi.ttl - dt };
+      if (taxi.ttl <= 0) {
+        popups.push({
+          x: tileCX(taxi.c),
+          y: tileCY(taxi.r) - 8,
+          text: "cab gave up. 1★ review.",
+          ttl: 1.4,
+          color: "#FF2E4D",
+        });
+        taxi = null;
+        taxiTimer = 12 + rand(frame) * 8;
+        cabbieQuit = true;
+      }
+    } else if (taxiTimer <= 0 && t > 6) {
+      // Strand it in real snow, away from the fleet.
+      const cands = ROAD_TILES.filter(
+        ([c, r]) =>
+          snow[idx(c, r)] > 1 &&
+          state.plows.every((p) => Math.abs(p.x - c) + Math.abs(p.y - r) > 3),
+      );
+      if (cands.length) {
+        const [c, r] = cands[Math.floor(rand(frame * 2.9) * cands.length)];
+        taxi = { c, r, taps: 0, ttl: 15 };
+        popups.push({
+          x: tileCX(c),
+          y: tileCY(r) - 10,
+          text: "CAB STUCK — MASH IT OUT!",
+          ttl: 1.6,
+          color: "#FFD23F",
+        });
+      }
+      taxiTimer = 12 + rand(frame * 1.3) * 8;
+    }
+
+    // ---- the bodega cat, on patrol ----
+    let cat = state.cat;
+    let catTimer = state.catTimer - dt;
+    if (cat) {
+      const nx = cat.x + cat.dir * 0.85 * dt;
+      let thanked = cat.thanked;
+      if (!thanked) {
+        const near = state.plows.some(
+          (p) => Math.abs(p.x - nx) < 1.3 && Math.abs(p.y - cat!.row) < 1.3,
+        );
+        if (near) {
+          thanked = true;
+          score2 += 15;
+          popups.push({
+            x: tileCX(Math.round(nx)),
+            y: tileCY(cat.row) - 12,
+            text: "the bodega cat approves ✨ +15",
+            ttl: 1.6,
+            color: "#3DDC97",
+          });
+        }
+      }
+      cat = nx < -1 || nx > COLS ? null : { ...cat, x: nx, thanked };
+      if (!cat) catTimer = 14 + rand(frame) * 10;
+    } else if (catTimer <= 0) {
+      const row = [0, 2, 4, 6, 8, 10, 12, 14][Math.floor(rand(frame * 4.1) * 8)];
+      const dir = rand(frame * 6.7) > 0.5 ? 1 : -1;
+      cat = { x: dir === 1 ? -0.8 : COLS - 0.2, row, dir, thanked: false };
+      catTimer = 14 + rand(frame * 1.9) * 10;
+    }
+
     // ---- metrics + verdicts ----
     let clear = 0;
     let blocked = 0;
@@ -325,7 +522,9 @@ export const snowCommand: GameEngine<SnowCommandState> = {
 
     // Director chatter: ttl runs down; refresh with mood lines at low ttl.
     let director = { ...state.director, ttl: state.director.ttl - dt };
-    if (director.ttl <= 0) {
+    if (cabbieQuit) {
+      director = { pose: "bad", line: "We lost a cab to a DRIFT. Embarrassing.", ttl: 3.5 };
+    } else if (director.ttl <= 0) {
       if (blockedFrac > 0.3) {
         director = {
           pose: "bad",
@@ -339,62 +538,58 @@ export const snowCommand: GameEngine<SnowCommandState> = {
           ttl: 4,
         };
       } else {
-        director = { pose: "idle", line: "Watch the squall. Keep routing.", ttl: 4 };
+        director = {
+          pose: "idle",
+          line: LINES_IDLE[Math.floor(rand(frame * 2.3) * LINES_IDLE.length)],
+          ttl: 4,
+        };
       }
     }
 
-    if (blockedFrac >= LOSE_BLOCKED_FRAC) {
-      return {
-        ...state,
-        frame,
-        t,
-        snow,
-        plows,
-        cleared,
-        score,
-        clearFrac,
-        blockedFrac,
-        phaseLabel,
-        gust,
-        phase: "gameover",
-        timeLeft: Math.max(0, STORM_LENGTH - t),
-        director: { pose: "lose", line: "The city's snowed in. We plow at dawn.", ttl: 99 },
-      };
-    }
-    if (t >= STORM_LENGTH) {
-      return {
-        ...state,
-        frame,
-        t,
-        snow,
-        plows,
-        cleared,
-        score: score + Math.round(clearFrac * 500),
-        clearFrac,
-        blockedFrac,
-        phaseLabel,
-        gust,
-        phase: "won",
-        timeLeft: 0,
-        director: { pose: "win", line: "Storm's over — and the buses ran ON TIME.", ttl: 99 },
-      };
-    }
-
-    return {
+    const common = {
       ...state,
       frame,
       t,
       snow,
       plows,
       cleared,
-      score,
+      score: score2,
       clearFrac,
       blockedFrac,
       phaseLabel,
       gust,
-      timeLeft: Math.max(0, STORM_LENGTH - t),
-      director,
+      popups,
+      taxi,
+      taxiTimer,
+      cat,
+      catTimer,
     };
+    if (blockedFrac >= LOSE_BLOCKED_FRAC) {
+      return {
+        ...common,
+        phase: "gameover" as const,
+        timeLeft: Math.max(0, STORM_LENGTH - t),
+        director: {
+          pose: "lose" as const,
+          line: "The city's snowed in. We plow at dawn — and we DO plow at dawn.",
+          ttl: 99,
+        },
+      };
+    }
+    if (t >= STORM_LENGTH) {
+      return {
+        ...common,
+        score: score2 + Math.round(clearFrac * 500),
+        phase: "won" as const,
+        timeLeft: 0,
+        director: {
+          pose: "win" as const,
+          line: "Storm's over. Buses ran ON TIME. Historians will argue about this.",
+          ttl: 99,
+        },
+      };
+    }
+    return { ...common, timeLeft: Math.max(0, STORM_LENGTH - t), director };
   },
 
   render(ctx, state) {
@@ -500,6 +695,69 @@ export const snowCommand: GameEngine<SnowCommandState> = {
       ctx.fillText(`${p.id + 1}`, x, y - 14);
     }
 
+    // Stuck cab — wobbles, flashes, begs to be mashed.
+    if (state.taxi) {
+      const { c, r, taps } = state.taxi;
+      const x = tileCX(c);
+      const y = tileCY(r);
+      const wob = Math.sin(state.frame / 3) * (1 + taps);
+      ctx.save();
+      ctx.translate(x + wob, y);
+      ctx.fillStyle = "#FFD23F";
+      ctx.fillRect(-12, -7, 24, 14);
+      ctx.fillStyle = "#0b1020";
+      ctx.fillRect(-6, -5, 12, 5); // windows
+      ctx.fillRect(-4, 2, 8, 3); // TAXI plate
+      ctx.restore();
+      // Snow piled on the hood.
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.beginPath();
+      ctx.arc(x - 6 + wob, y - 8, 5, Math.PI, 0);
+      ctx.arc(x + 6 + wob, y - 9, 6, Math.PI, 0);
+      ctx.fill();
+      if (Math.floor(state.frame / 16) % 2 === 0) {
+        ctx.fillStyle = "#FF2E4D";
+        ctx.font = "bold 9px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(`MASH x${5 - taps}`, x, y - 16);
+      }
+    }
+
+    // The bodega cat, unbothered.
+    if (state.cat) {
+      const x = BOARD_X + state.cat.x * TILE + TILE / 2;
+      const y = tileCY(state.cat.row) + 6;
+      ctx.save();
+      ctx.translate(x, y);
+      if (state.cat.dir < 0) ctx.scale(-1, 1);
+      ctx.fillStyle = "#e8863c";
+      ctx.fillRect(-6, -4, 12, 6); // body
+      ctx.fillRect(4, -8, 5, 5); // head
+      ctx.beginPath(); // tail, raised — it owns this street
+      ctx.moveTo(-6, -3);
+      ctx.quadraticCurveTo(-11, -6, -9, -12);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#e8863c";
+      ctx.stroke();
+      ctx.fillStyle = "#0b1020";
+      ctx.fillRect(6, -7, 1.5, 1.5); // eye
+      ctx.restore();
+    }
+
+    // Floating popups.
+    for (const p of state.popups) {
+      ctx.globalAlpha = Math.min(1, p.ttl * 2);
+      ctx.font = "bold 10px monospace";
+      ctx.textAlign = "center";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(6,10,22,0.9)";
+      ctx.strokeText(p.text, p.x, p.y);
+      ctx.fillStyle = p.color;
+      ctx.fillText(p.text, p.x, p.y);
+      ctx.globalAlpha = 1;
+    }
+    ctx.textAlign = "left";
+
     // Falling snow overlay.
     ctx.fillStyle = "rgba(255,255,255,0.8)";
     for (let i = 0; i < 40; i++) {
@@ -522,13 +780,21 @@ export const snowCommand: GameEngine<SnowCommandState> = {
     ctx.fillText(`CLEAR ${(state.clearFrac * 100).toFixed(0)}%`, WIDTH - 12, 15);
     ctx.fillStyle = "#fff";
     ctx.fillText(`STORM ${Math.ceil(state.timeLeft ?? 0)}s`, WIDTH - 12, 30);
+    // Live mash streak, front and center while it's hot.
+    if (state.streak >= 5 && state.t - state.lastTapT < 1.2) {
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#3DDC97";
+      ctx.font = "bold 12px monospace";
+      ctx.fillText(`SHOVEL STREAK x${state.streak}`, WIDTH / 2, 26);
+      ctx.font = "10px monospace";
+    }
 
     if (state.phase === "attract") {
-      banner(ctx, "TAP TO MAN THE PLOW DESK", "tap streets to route the fleet");
+      banner(ctx, "TAP TO MAN THE PLOW DESK", "tap streets: plows roll + you shovel. MASH.");
     } else if (state.phase === "gameover") {
-      banner(ctx, "THE CITY SNOWED IN", "tap to run it back");
+      banner(ctx, "THE CITY SNOWED IN", "tap to run it back. the drifts are gloating.");
     } else if (state.phase === "won") {
-      banner(ctx, "STORM CLEARED!", `final score ${state.score} — tap to go again`);
+      banner(ctx, "STORM CLEARED!", `score ${state.score} — the buses ran ON TIME`);
     }
   },
 };

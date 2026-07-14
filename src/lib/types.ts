@@ -111,7 +111,8 @@ export type GameId =
   | "bus-lane-blitz"
   | "toddler-tycoon"
   | "asphalt-attack"
-  | "hot-mic";
+  | "hot-mic"
+  | "snow-command";
 
 /** Catalog entry shown on the arcade hub menu. */
 export interface ArcadeCabinet {

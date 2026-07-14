@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ARCADE_CABINETS } from "@/data/games";
+import { ArcadeGrid } from "@/components/arcade/ArcadeGrid";
 
 export const metadata = {
   // The root layout appends " · Mamdanistan" via the title template.
@@ -43,56 +42,7 @@ export default function ArcadePage() {
         </div>
       </header>
 
-      {/* Only finished cabinets make the floor; prototypes stay in the shop. */}
-      <div className="grid gap-5 sm:grid-cols-2">
-        {ARCADE_CABINETS.filter((cab) => cab.status === "playable").map((cab) => (
-          <Link
-            key={cab.id}
-            href={`/arcade/${cab.id}`}
-            className="panel crt group block overflow-hidden transition-transform hover:-translate-y-1"
-          >
-            {cab.hero ? (
-              <div className="relative aspect-[16/9] w-full overflow-hidden bg-mamdani-ink/60">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={cab.hero}
-                  alt={`${cab.title} — title art`}
-                  className="h-full w-full object-cover transition-transform duration-200 [image-rendering:pixelated] group-hover:scale-105"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center bg-mamdani-ink/60 py-8 text-6xl">
-                <span className="group-hover:animate-press-start" aria-hidden>
-                  {cab.glyph}
-                </span>
-              </div>
-            )}
-            <div className="space-y-2 border-t-2 border-mamdani-steel px-5 py-5">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="font-pixel text-xs uppercase text-mamdani-mint">
-                  {cab.title}
-                </h2>
-                <span
-                  className={`rounded-sm border px-1.5 py-0.5 font-pixel text-[7px] uppercase ${
-                    cab.status === "playable"
-                      ? "border-mamdani-mint text-mamdani-mint"
-                      : "border-mamdani-gold text-mamdani-gold"
-                  }`}
-                >
-                  {cab.status === "playable" ? "Playable" : "Prototype"}
-                </span>
-              </div>
-              <p className="font-terminal text-xl text-white">{cab.blurb}</p>
-              <p className="font-terminal text-lg leading-relaxed text-mamdani-fog">
-                {cab.howToPlay}
-              </p>
-              <span className="inline-block pt-1 font-pixel text-[9px] uppercase text-mamdani-cyan group-hover:text-white">
-                ▸ Play now
-              </span>
-            </div>
-          </Link>
-        ))}
-      </div>
+      <ArcadeGrid />
     </div>
   );
 }

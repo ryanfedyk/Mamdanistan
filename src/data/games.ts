@@ -100,6 +100,20 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
     heroThumb: "/games/fix-the-city-icon.webp",
     status: "playable",
   },
+  {
+    id: "snow-command",
+    title: "Snow Command",
+    blurb: "Direct the plow fleet. Keep the city moving.",
+    howToPlay:
+      "The first storm of the term is dumping on the five boroughs and the " +
+      "Mayor is running the plow desk. Tap a street to send the nearest plow " +
+      "(tap a plow first to pick a specific one) and keep the roads clear " +
+      "while the blizzard does its worst. If too much of the grid snows " +
+      "shut, the city seizes — hold the line until the storm blows out.",
+    accent: "mamdani-cyan",
+    glyph: "❄️",
+    status: "playable",
+  },
 ];
 
 /** Lookup helper for the per-game cabinet pages. */

@@ -112,7 +112,8 @@ export type GameId =
   | "toddler-tycoon"
   | "asphalt-attack"
   | "hot-mic"
-  | "snow-command";
+  | "snow-command"
+  | "past-bedtime";
 
 /** Catalog entry shown on the arcade hub menu. */
 export interface ArcadeCabinet {

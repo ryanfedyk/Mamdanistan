@@ -114,6 +114,22 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
     glyph: "❄️",
     status: "playable",
   },
+  {
+    id: "past-bedtime",
+    title: "Past Bedtime",
+    blurb: "Mamdani's on the Knicks. Bedtime is officially cancelled.",
+    howToPlay:
+      "By order of the Mayor, every kid in the city can stay up for the game " +
+      "— and the game is the Mayor, in a Knicks jersey, cooking. Tap when the " +
+      "power meter hits the green sweet spot to shoot: perfect timing is a " +
+      "SWISH, close counts off the rim, and a wild tap is a brick. First to " +
+      "21 wins the night; five bricks and it's lights out for real. Watch the " +
+      "clock at the top — it only gets later, and the pajama crowd only gets " +
+      "bigger.",
+    accent: "mamdani-gold",
+    glyph: "🏀",
+    status: "playable",
+  },
 ];
 
 /** Lookup helper for the per-game cabinet pages. */

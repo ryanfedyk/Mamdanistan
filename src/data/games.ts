@@ -120,14 +120,16 @@ export const ARCADE_CABINETS: ArcadeCabinet[] = [
     blurb: "Mamdani's on the Knicks. Bedtime is officially cancelled.",
     howToPlay:
       "By order of the Mayor, every kid in the city can stay up for the game " +
-      "— and the game is the Mayor, in a Knicks jersey, cooking. Tap when the " +
-      "power meter hits the green sweet spot to shoot: perfect timing is a " +
-      "SWISH, close counts off the rim, and a wild tap is a brick. First to " +
-      "21 wins the night; five bricks and it's lights out for real. Watch the " +
-      "clock at the top — it only gets later, and the pajama crowd only gets " +
-      "bigger.",
+      "— and the game is the Mayor, in a Knicks jersey, cooking. Dribble with " +
+      "the arrows (or the D-pad) and weave through the gray-suit Haters — if " +
+      "one touches you, that's a steal. Tap the goal (or SHOOT) to let it " +
+      "fly: open looks near the rim drop, contested heaves are a prayer, and " +
+      "beyond the arc is 3. First to 21 wins the night; five misses and it's " +
+      "lights out for real. The clock at the top only gets later.",
     accent: "mamdani-gold",
     glyph: "🏀",
+    hero: "/games/past-bedtime-hero.webp",
+    heroThumb: "/games/past-bedtime-icon.webp",
     status: "playable",
   },
 ];
